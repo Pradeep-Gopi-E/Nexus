@@ -1,0 +1,64 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+.env
+nexus/
+
+# Database files
+*.db
+*.sqlite3
+data/
+chroma_db/
+nexus_memory.db
+
+# Environment variables
+.env
+.env.local
+
+# IDEs / Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and debug files
+*.log
+debug_output.txt
+fastmcp_sig.txt
+test2.log
+output.log
+output2.log
+output3.log
+test_nexus.py
+debug_gemini.py
+run_test.py
+script.py
+fetch_versions.py
