@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Advanced Control</title>
+    <!-- Modern Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Ionicons for sleek icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Main Chat Area -->
+        <main class="chat-area">
+
+            <div class="watermark">
+                <div class="brand-icon-small">
+                    <ion-icon name="planet-outline"></ion-icon>
+                </div>
+                <h2>Nexus AI</h2>
+            </div>
+
+            <header class="chat-header-minimal">
+                <div>
+                    <h1>LangGraph Reasoning Engine</h1>
+                    <p class="subtitle">Context-aware retrieval & synthesis</p>
+                </div>
+            </header>
+
+            <div class="messages-container" id="messages-container">
+                <!-- Chat messages injected here -->
+                <div class="message system-msg">
+                    <div class="avatar"><ion-icon name="hardware-chip-outline"></ion-icon></div>
+                    <div class="bubble">
+                        Nexus Core initialized. I have full access to your ChromaDB vector store and SQLite memory
+                        schema. What would you like to investigate?
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-controls">
+                    <div class="upload-mini" id="upload-zone">
+                        <ion-icon name="cloud-upload-outline"></ion-icon>
+                        <span>Attach PDF/MD</span>
+                        <input type="file" id="file-input" accept=".pdf,.md" hidden>
+                    </div>
+                    <div id="upload-status" class="status-msg"></div>
+
+                    <div class="provider-switch-mini">
+                        <select id="llm-provider">
+                            <option value="gemini" selected>Google Gemini</option>
+                            <option value="openai">OpenAI GPT-4o</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-wrapper">
+                    <textarea id="chat-input" placeholder="Message Nexus..." rows="1"></textarea>
+                    <button id="send-btn" class="send-btn">
+                        <ion-icon name="send"></ion-icon>
+                    </button>
+                </div>
+                <p class="disclaimer">Nexus uses advanced multi-agent workflows. Complex reasoning may take a moment.
+                </p>
+            </div>
+        </main>
+
+        <!-- Right Sidebar for Documents & Project Control -->
+        <aside class="sidebar right-sidebar">
+
+            <!-- Active Documents -->
+            <div class="sidebar-section">
+                <h3><ion-icon name="folder-open-outline"></ion-icon> Active Documents</h3>
+                <ul class="memory-list" id="document-list" style="max-height: 250px;">
+                    <!-- Dynamic docs injected here -->
+                </ul>
+            </div>
+
+            <!-- Core Memory -->
+            <div class="sidebar-section flex-grow"
+                style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                <h3><ion-icon name="library-outline"></ion-icon> <span id="current-project-name">Memory</span></h3>
+                <ul class="memory-list" id="memory-list">
+                    <!-- Dynamic facts injected here -->
+                </ul>
+                <div class="add-memory-box">
+                    <input type="text" id="new-fact-input" placeholder="Teach Nexus a fact...">
+                    <button id="add-fact-btn"><ion-icon name="add-outline"></ion-icon></button>
+                </div>
+            </div>
+
+            <!-- Past Chats / Project Context -->
+            <div class="sidebar-section"
+                style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                <div style="display: flex; gap: 8px;">
+                    <button id="new-project-btn" class="primary-btn"
+                        style="flex: 1; border-radius: 8px; padding: 10px; text-transform: none; display: flex; justify-content: center; align-items: center; gap: 6px;">
+                        <ion-icon name="add-outline"></ion-icon> New Work
+                    </button>
+                    <button id="toggle-past-work-btn" class="secondary-btn"
+                        style="flex: 1; border-radius: 8px; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 6px;">
+                        <ion-icon name="time-outline"></ion-icon> Past Work
+                    </button>
+                </div>
+
+                <div id="past-work-container"
+                    style="display: none; margin-top: 12px; flex-direction: column; gap: 8px;">
+                    <ul class="memory-list" id="project-list" style="max-height: 200px; overflow-y: auto;">
+                        <li class="memory-item" style="color: var(--text-muted); justify-content:center;">Loading...
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="system-status" style="margin-top: 12px; justify-content: center;">
+                    <span class="status-dot online"></span>
+                    <span>System Online</span>
+                </div>
+            </div>
+
+        </aside>
+
+    </div>
+
+    <!-- New Work Modal -->
+    <div id="new-work-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3>Start New Work</h3>
+            <p>This will open a new workspace in a new tab. Your current work will remain safe here.</p>
+            <input type="text" id="new-work-name" placeholder="Workspace Name">
+            <div class="modal-actions">
+                <button id="cancel-new-work-btn" class="secondary-btn" style="padding: 8px 16px;">Cancel</button>
+                <button id="confirm-new-work-btn" class="primary-btn" style="padding: 8px 16px;">Open Workspace</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
