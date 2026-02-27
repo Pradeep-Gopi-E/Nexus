@@ -3,13 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionNameParam = urlParams.get('session');
 
-    let currentProjectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    let currentProjectCustomName = sessionNameParam ? sessionNameParam : `Session ${new Date().toLocaleTimeString()}`;
+    let currentProjectId;
+    let currentProjectCustomName;
 
-    // Clean URL so it doesn't linger on refresh
+    // Always start a fresh session on load/reload
     if (sessionNameParam) {
+        currentProjectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        currentProjectCustomName = sessionNameParam;
         window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+        currentProjectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        currentProjectCustomName = `Session ${new Date().toLocaleTimeString()}`;
     }
+    localStorage.setItem('nexus_current_project_id', currentProjectId);
+    localStorage.setItem('nexus_current_project_name', currentProjectCustomName);
 
     // --- Elements ---
     const chatInput = document.getElementById('chat-input');
@@ -32,10 +39,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
     const uploadStatus = document.getElementById('upload-status');
 
+    const imageUploadZone = document.getElementById('image-upload-zone');
+    const imageInput = document.getElementById('image-input');
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    const imagePreview = document.getElementById('image-preview');
+    const removeImageBtn = document.getElementById('remove-image-btn');
+
+    // Track attached images (we'll only allow one for now to keep it simple, but array allows expansion)
+    let attachedImagesBase64 = [];
+
     const newWorkModal = document.getElementById('new-work-modal');
     const newWorkNameInput = document.getElementById('new-work-name');
     const confirmNewWorkBtn = document.getElementById('confirm-new-work-btn');
     const cancelNewWorkBtn = document.getElementById('cancel-new-work-btn');
+
+    // Attach custom name to UI immediately
+    if (currentProjectName) {
+        currentProjectName.textContent = currentProjectCustomName;
+    }
+    const kbProjectLabel = document.getElementById('kb-project-label');
+    if (kbProjectLabel) {
+        kbProjectLabel.textContent = currentProjectCustomName;
+    }
 
     // --- Autoresize Textarea ---
     chatInput.addEventListener('input', function () {
@@ -47,14 +72,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Chat Logic ---
     function appendMessage(content, isUser = false, isHtml = false) {
         const msgDiv = document.createElement('div');
-        msgDiv.className = `message ${isUser ? 'user-msg' : 'system-msg'}`;
+        msgDiv.className = `flex gap-4 mb-8 group animate-fade-in-up ${isUser ? 'flex-row-reverse' : ''}`;
 
         const avatar = document.createElement('div');
-        avatar.className = 'avatar';
-        avatar.innerHTML = isUser ? '<ion-icon name="person-outline"></ion-icon>' : '<ion-icon name="hardware-chip-outline"></ion-icon>';
+        if (isUser) {
+            avatar.className = 'size-8 rounded-full bg-gradient-to-br from-primary to-purple-600 p-[1px] flex items-center justify-center shrink-0 mt-1 overflow-hidden';
+            avatar.innerHTML = `<span class="rounded-full h-full w-full border-2 border-surface-dark bg-background-dark flex items-center justify-center text-xs font-bold text-white">U</span>`;
+        } else {
+            avatar.className = 'size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1';
+            avatar.innerHTML = `<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>`;
+        }
+
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = `flex-1 max-w-3xl flex flex-col ${isUser ? 'items-end' : ''}`;
+
+        const headerNode = document.createElement('div');
+        headerNode.className = `flex items-baseline gap-2 mb-1 ${isUser ? 'flex-row-reverse' : ''}`;
+        headerNode.innerHTML = `<span class="text-sm font-semibold text-white">${isUser ? 'You' : 'Nexus AI'}</span>
+                                <span class="text-xs text-slate-500">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
 
         const bubble = document.createElement('div');
-        bubble.className = 'bubble markdown-body';
+        if (isUser) {
+            bubble.className = 'px-5 py-3 rounded-2xl rounded-tr-sm bg-surface-lighter border border-border-dark text-slate-200 text-sm leading-relaxed shadow-sm bubble';
+        } else {
+            bubble.className = 'prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed bubble markdown-body';
+        }
 
         if (isHtml) {
             bubble.innerHTML = content;
@@ -62,8 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.innerHTML = content.replace(/\\n/g, '<br>');
         }
 
+        contentWrapper.appendChild(headerNode);
+        contentWrapper.appendChild(bubble);
+
         msgDiv.appendChild(avatar);
-        msgDiv.appendChild(bubble);
+        msgDiv.appendChild(contentWrapper);
         messagesContainer.appendChild(msgDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         return msgDiv;
@@ -71,25 +116,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showTypingIndicator() {
         const msgDiv = document.createElement('div');
-        msgDiv.className = `message system-msg`;
+        msgDiv.className = 'flex gap-4 mb-8 group animate-fade-in-up';
         msgDiv.id = 'typing-indicator';
 
         const avatar = document.createElement('div');
-        avatar.className = 'avatar';
-        avatar.innerHTML = '<ion-icon name="hardware-chip-outline"></ion-icon>';
+        avatar.className = 'size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1';
+        avatar.innerHTML = `<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>`;
+
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'flex-1 max-w-3xl';
+
+        const headerNode = document.createElement('div');
+        headerNode.className = 'flex items-baseline gap-2 mb-1';
+        headerNode.innerHTML = `<span class="text-sm font-semibold text-white">Nexus AI</span><span class="text-xs text-slate-500">Thinking...</span>`;
 
         const bubble = document.createElement('div');
-        bubble.className = 'bubble';
+        bubble.className = 'bg-surface-lighter/50 border border-border-dark rounded-xl p-4 mb-3 max-w-md animate-pulse';
         bubble.innerHTML = `
-            <div class="typing-indicator">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
+            <div class="flex items-center gap-3 mb-2">
+                <div class="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span class="text-xs font-medium text-primary">Synthesizing...</span>
+            </div>
+            <div class="h-1.5 w-full bg-surface-dark rounded-full overflow-hidden">
+                <div class="h-full bg-primary w-2/3 rounded-full"></div>
+            </div>
+            <div class="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+                <span>Vector Graph</span><span>Running...</span>
             </div>
         `;
 
+        contentWrapper.appendChild(headerNode);
+        contentWrapper.appendChild(bubble);
         msgDiv.appendChild(avatar);
-        msgDiv.appendChild(bubble);
+        msgDiv.appendChild(contentWrapper);
+
         messagesContainer.appendChild(msgDiv);
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -101,9 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function sendChat() {
         const question = chatInput.value.trim();
-        if (!question) return;
+        if (!question && attachedImagesBase64.length === 0) return;
 
-        appendMessage(question, true);
+        let displayQuestion = question;
+        if (attachedImagesBase64.length > 0) {
+            displayQuestion += `<br><img src="${attachedImagesBase64[0]}" style="max-width: 250px; border-radius: 8px; margin-top: 10px;" />`;
+        }
+
+        appendMessage(displayQuestion, true, true);
         chatInput.value = '';
         chatInput.style.height = 'auto';
 
@@ -116,16 +181,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         try {
+            const payload = {
+                project_id: currentProjectId,
+                project_name: currentProjectCustomName,
+                question: question,
+                provider: providerSelect.value,
+                selected_documents: selectedDocs,
+                images: attachedImagesBase64
+            };
+
+            // Clear image attachments after sending
+            clearImageAttachment();
+
             const res = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    project_id: currentProjectId,
-                    project_name: currentProjectCustomName,
-                    question: question,
-                    provider: providerSelect.value,
-                    selected_documents: selectedDocs
-                })
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             hideTypingIndicator();
@@ -150,6 +221,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 appendMessage(finalHtml, false, true);
                 loadHistory();
                 loadMemory();
+
+                // Poll for background memory extraction updates
+                setTimeout(loadMemory, 3500);
+                setTimeout(loadMemory, 8000);
             } else {
                 appendMessage(`**Error:** ${data.detail}`, false, true);
             }
@@ -164,6 +239,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             sendChat();
+        }
+    });
+
+    // --- Paste Event for Images ---
+    chatInput.addEventListener('paste', (e) => {
+        if (!e.clipboardData || !e.clipboardData.items) return;
+
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (!file) continue;
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const base64String = event.target.result;
+                    attachedImagesBase64 = [base64String];
+
+                    // Show preview
+                    imagePreview.src = base64String;
+                    imagePreviewContainer.style.display = 'flex';
+
+                    imageUploadZone.style.color = 'var(--accent-primary)';
+                    imageUploadZone.style.borderColor = 'var(--accent-primary)';
+
+                    uploadStatus.textContent = "Image ready";
+                    setTimeout(() => { uploadStatus.textContent = ''; }, 3000);
+                };
+                reader.readAsDataURL(file);
+                // Prevent default so we don't paste the filename text into the box (if any)
+                e.preventDefault();
+                break;
+            }
         }
     });
 
@@ -186,21 +294,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pName = proj.name || pid.substring(0, 15) + '...';
 
                 const li = document.createElement('li');
-                li.className = 'memory-item';
-                li.style.cursor = 'pointer';
+                li.className = 'p-3 bg-surface-lighter rounded-lg border border-border-dark hover:border-primary/40 transition-colors group cursor-pointer flex items-center gap-3';
                 if (pid === currentProjectId) {
-                    li.style.borderLeft = '3px solid var(--accent-primary)';
-                    li.style.paddingLeft = '5px';
+                    li.style.borderColor = 'var(--primary)';
+                    li.style.background = 'rgba(96, 107, 210, 0.1)';
                 }
 
                 li.innerHTML = `
-                    <ion-icon class="memory-icon" name="chatbox-ellipses-outline"></ion-icon>
-                    <div style="font-size: 0.8rem; flex-grow: 1;">${pName}</div>
+                    <div class="bg-primary/10 p-1.5 rounded text-primary">
+                        <span class="material-symbols-outlined text-[18px]">history</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-200 truncate group-hover:text-primary transition-colors">${pName}</p>
+                    </div>
                 `;
 
                 li.addEventListener('click', () => {
                     currentProjectId = pid;
                     currentProjectCustomName = pName;
+                    localStorage.setItem('nexus_current_project_id', currentProjectId);
+                    localStorage.setItem('nexus_current_project_name', currentProjectCustomName);
                     messagesContainer.innerHTML = '';
                     appendMessage(`Loaded Project Workspace: ${pName}`, false);
                     loadProjects();
@@ -208,6 +321,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadMemory();
                     loadDocuments();
                     currentProjectName.textContent = pName;
+                    const kbLabel = document.getElementById('kb-project-label');
+                    if (kbLabel) kbLabel.textContent = pName;
                     pastWorkContainer.style.display = 'none'; // Auto-hide list on selection
                 });
 
@@ -233,10 +348,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (msg.role !== 'user') {
                         contentToRender = marked.parse(contentToRender);
                     }
-                    appendMessage(contentToRender, msg.role === 'user', msg.role !== 'user');
+                    // For both user and assistant, we now allow HTML because we inject <img> tags
+                    appendMessage(contentToRender, msg.role === 'user', true);
                 });
             } else {
-                appendMessage(`New Chat Workspace Initiated. Nexus Core is ready.`, false);
+                appendMessage(`**System Ready.** Nexus Core is online with full semantic capabilities.`, false, true);
             }
 
             // Sync the sidebar so it shows active project
@@ -249,22 +365,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Memory Logic ---
     async function loadMemory() {
+        const sortMode = document.getElementById('memory-sort-select').value;
         try {
-            const res = await fetch(`/api/memory?project_id=${currentProjectId}`);
+            const res = await fetch(`/api/memory?project_id=${currentProjectId}&sort_by=${sortMode}`);
             const data = await res.json();
             memoryList.innerHTML = '';
 
             if (data.facts.length === 0) {
-                memoryList.innerHTML = '<li class="memory-item" style="justify-content:center; color: var(--text-muted);">No core memories yet</li>';
+                memoryList.innerHTML = '<li class="p-3 text-sm text-center text-slate-500">No core memories yet</li>';
                 return;
             }
 
             data.facts.forEach(fact => {
-                const li = document.createElement('li');
-                li.className = 'memory-item';
+                const li = document.createElement('div');
+                li.className = 'bg-surface-lighter/50 rounded-lg p-3 border border-border-dark relative overflow-hidden group mb-2';
+
+                let borderColor = 'white';
+                if (fact.tier === 'Research') borderColor = '#c084fc';
+                if (fact.tier === 'Project') borderColor = '#60a5fa';
+                if (fact.tier === 'Personal') borderColor = '#4ade80';
+                if (fact.tier === 'Conversational') borderColor = '#9ca3af';
+
                 li.innerHTML = `
-                    <ion-icon class="memory-icon" name="bulb-outline"></ion-icon>
-                    <div>${fact.content}</div>
+                    <div class="absolute top-0 left-0 w-1 h-full" style="background-color: ${borderColor};"></div>
+                    <div class="flex justify-between items-start mb-2 pl-2">
+                        <span class="px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-slate-400 border border-white/5" style="color: ${borderColor}">${fact.tier || 'Memory'}</span>
+                    </div>
+                    <p class="text-sm text-slate-300 pl-2 leading-relaxed">${fact.content}</p>
+                    <div class="mt-2 pl-2 flex items-center gap-2 text-[10px] text-slate-500">
+                        <span class="material-symbols-outlined text-[12px]">psychology</span>
+                        ${Math.round((fact.relevance_score || 0.5) * 100)}% Relevance
+                        <button onclick="if(confirm('Delete memory?')) { deleteMem('${fact.id}') }" class="ml-auto hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined text-[14px]">delete</span></button>
+                    </div>
                 `;
                 memoryList.appendChild(li);
             });
@@ -272,6 +404,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to load memory', e);
         }
     }
+
+    // Quick hack attached to window since dynamically setting onclick in HTML snippet 
+    window.deleteMem = async function (id) {
+        await fetch(`/api/memory/${currentProjectId}/${id}`, { method: 'DELETE' });
+        loadMemory();
+    };
+
+    // Trigger reload when sorting changes
+    document.getElementById('memory-sort-select').addEventListener('change', loadMemory);
 
     async function addMemory() {
         const fact = newFactInput.value.trim();
@@ -297,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') addMemory();
     });
 
-    // --- Upload Logic ---
+    // --- Upload Logic for Documents ---
     uploadZone.addEventListener('click', () => fileInput.click());
 
     uploadZone.addEventListener('dragover', (e) => {
@@ -358,6 +499,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Upload Logic for Images (Vision) ---
+    imageUploadZone.addEventListener('click', () => imageInput.click());
+
+    imageInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const base64String = event.target.result;
+                attachedImagesBase64 = [base64String];
+
+                // Show preview
+                imagePreview.src = base64String;
+                imagePreviewContainer.style.display = 'flex';
+
+                imageUploadZone.style.color = 'var(--accent-primary)';
+                imageUploadZone.style.borderColor = 'var(--accent-primary)';
+
+                uploadStatus.textContent = "Image ready";
+                setTimeout(() => { uploadStatus.textContent = ''; }, 3000);
+            };
+
+            reader.readAsDataURL(file);
+        }
+    });
+
+    removeImageBtn.addEventListener('click', () => {
+        clearImageAttachment();
+    });
+
+    function clearImageAttachment() {
+        attachedImagesBase64 = [];
+        imageInput.value = '';
+        imagePreview.src = '';
+        imagePreviewContainer.style.display = 'none';
+        imageUploadZone.style.color = '';
+        imageUploadZone.style.borderColor = '';
+    }
+
     // --- Document & Project Logic ---
     async function loadDocuments() {
         try {
@@ -366,22 +547,29 @@ document.addEventListener('DOMContentLoaded', () => {
             documentList.innerHTML = '';
 
             if (!data.documents || data.documents.length === 0) {
-                documentList.innerHTML = '<li class="memory-item" style="justify-content:center; color: var(--text-muted);">No documents yet</li>';
+                documentList.innerHTML = '<li class="p-3 text-sm text-center text-slate-500">No documents yet</li>';
                 return;
             }
 
             data.documents.forEach(filename => {
-                const li = document.createElement('li');
-                li.className = 'doc-item';
+                const li = document.createElement('div');
+                li.className = 'p-3 bg-surface-lighter rounded-lg border border-border-dark hover:border-primary/40 transition-colors group cursor-pointer mb-2';
                 li.innerHTML = `
-                    <div class="doc-name" style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" class="doc-checkbox" value="${filename}" checked style="cursor: pointer;">
-                        <ion-icon name="document-text-outline" style="color: var(--accent-primary);"></ion-icon>
-                        <span title="${filename}">${filename.length > 20 ? filename.substring(0, 20) + '...' : filename}</span>
+                    <div class="flex items-start gap-3">
+                        <div class="bg-primary/10 p-1.5 rounded text-primary">
+                            <span class="material-symbols-outlined text-[18px]">document_scanner</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="doc-checkbox w-3 h-3 text-primary bg-surface-dark border-border-dark rounded focus:ring-primary focus:ring-offset-surface-dark" value="${filename}" checked>
+                                <p class="text-sm font-medium text-slate-200 truncate group-hover:text-primary transition-colors">${filename}</p>
+                            </label>
+                            <p class="text-xs text-slate-500 mt-0.5">Vector Store • <span class="text-emerald-400">Indexed</span></p>
+                        </div>
+                        <button class="delete-doc-btn text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" data-filename="${filename}" title="Delete Document">
+                            <span class="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
                     </div>
-                    <button class="delete-doc-btn" data-filename="${filename}" title="Delete Document">
-                        <ion-icon name="trash-outline"></ion-icon>
-                    </button>
                 `;
                 documentList.appendChild(li);
             });
@@ -454,6 +642,569 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    let kbFactsData = []; // Store globally for client-side search filtering
+    let kbEdgesData = []; // Store graph edges for D3 render
+    let kbActiveTierFilter = 'All'; // Track active tier filter for KB
+
+    // --- Knowledge Base Logic ---
+    window.loadKnowledgeBase = async function () {
+        const kbContainer = document.getElementById('kb-facts-container');
+        kbContainer.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500 text-sm">Loading Knowledge Base...</div>';
+
+        // Update the KB project label
+        const kbLabel = document.getElementById('kb-project-label');
+        if (kbLabel) kbLabel.textContent = currentProjectCustomName;
+
+        try {
+            // Always fetch scoped to the active project
+            const kbUrl = `/api/knowledge?project_id=${currentProjectId}`;
+            const edgesUrl = `/api/edges?project_id=${currentProjectId}`;
+
+            const [kbRes, edgesRes] = await Promise.all([
+                fetch(kbUrl),
+                fetch(edgesUrl)
+            ]);
+
+            const kbData = await kbRes.json();
+            const edgesData = await edgesRes.json();
+
+            kbFactsData = kbData.knowledge || [];
+            kbEdgesData = edgesData.edges || [];
+
+            renderKnowledgeBase(); // Re-render with any active search term
+        } catch (e) {
+            console.error('Failed to load KB', e);
+            kbContainer.innerHTML = '<div class="text-red-400 text-sm p-4">Error loading Knowledge Base</div>';
+        }
+    };
+
+    function renderKnowledgeBase() {
+        const kbContainer = document.getElementById('kb-facts-container');
+        const searchTerm = (document.getElementById('kb-search-input').value || '').toLowerCase();
+
+        // 1. Filter by search term and tier
+        const filteredFacts = kbFactsData.filter(fact => {
+            const matchesContent = fact.content && fact.content.toLowerCase().includes(searchTerm);
+            const matchesSource = fact.source && fact.source.toLowerCase().includes(searchTerm);
+            const matchesProject = fact.project_name && fact.project_name.toLowerCase().includes(searchTerm);
+            const matchesTier = kbActiveTierFilter === 'All' || (fact.tier || 'Conversational') === kbActiveTierFilter;
+            return matchesTier && (matchesContent || matchesSource || matchesProject);
+        });
+
+        if (filteredFacts.length === 0) {
+            kbContainer.innerHTML = '<div class="flex items-center justify-center p-8 text-slate-500">No facts found.</div>';
+            return;
+        }
+
+        // 2. Group by tier
+        const grouped = {
+            'Research': [],
+            'Project': [],
+            'Personal': [],
+            'Conversational': []
+        };
+
+        filteredFacts.forEach(fact => {
+            const tier = fact.tier || 'Conversational';
+            if (!grouped[tier]) grouped[tier] = [];
+            grouped[tier].push(fact);
+        });
+
+        kbContainer.innerHTML = ''; // Clear
+
+        const tierConfigs = {
+            'Conversational': { title: 'Conversational Tier', color: 'slate', accent: 'slate-400', icon: 'folder_open' },
+            'Personal': { title: 'Personal Tier', color: 'emerald', accent: 'emerald-500', icon: 'person_search' },
+            'Project': { title: 'Project Tier', color: 'primary', accent: 'primary', icon: 'deployed_code' },
+            'Research': { title: 'Research Tier', color: 'purple', accent: 'purple-500', icon: 'science' }
+        };
+
+        for (const [tier, facts] of Object.entries(grouped)) {
+            if (facts.length === 0) continue;
+
+            const c = tierConfigs[tier] || tierConfigs['Conversational'];
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'space-y-3';
+
+            groupDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold uppercase tracking-widest text-${c.color}-500">${c.title}</h2>
+                        <span class="text-[10px] bg-${c.color}-500/10 text-${c.color}-500 px-2 py-0.5 rounded-full font-medium">${facts.length} Facts</span>
+                    </div>
+                `;
+
+            facts.forEach(fact => {
+                const card = document.createElement('div');
+                card.className = `glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-${c.accent}`;
+
+                const score = Math.round((fact.relevance_score || 0.5) * 100);
+                const projName = fact.project_name || 'Unknown Project';
+
+                let displaySource = fact.source || '';
+                const sourceMap = { 'auto_extract': 'Auto Extracted', 'user': 'User Input', 'image': 'Image Analysis', 'Conversation': 'Chat', 'conversation': 'Chat' };
+                displaySource = sourceMap[displaySource] || displaySource;
+                let sourceIcon = 'chat';
+                if (fact.source === 'auto_extract') sourceIcon = 'auto_awesome';
+                else if (fact.source === 'user') sourceIcon = 'person';
+                else if (fact.source === 'image') sourceIcon = 'image';
+                else if (fact.source && !sourceMap[fact.source]) sourceIcon = 'description';
+                const sourceName = displaySource ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-${c.color}-500/10 text-${c.accent} text-[10px] ml-2 border border-${c.color}-500/20"><span class="material-symbols-outlined text-[11px]">${sourceIcon}</span>${escapeHtml(displaySource)}</span>` : '';
+
+                card.innerHTML = `
+                        <div class="flex justify-between items-start gap-4">
+                            <p class="text-sm leading-relaxed text-slate-300 flex-1">${escapeHtml(fact.content)}${sourceName}</p>
+                            <div class="flex flex-col items-end shrink-0">
+                                <span class="text-xs font-bold text-${c.accent}">${score}%</span>
+                                <span class="text-[10px] text-slate-500">Rel.</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-xs text-slate-500">${c.icon}</span>
+                                <span class="text-[11px] text-slate-400 font-medium truncate max-w-[150px]">${escapeHtml(projName)}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editKbFact('${fact.id}', '${escapeHtml(fact.content).replace(/'/g, "\\'")}', '${fact.tier}')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
+                                    <span class="material-symbols-outlined text-sm">edit</span>
+                                </button>
+                                <button onclick="deleteKbFact('${fact.id}')" class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
+                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                groupDiv.appendChild(card);
+            });
+
+            kbContainer.appendChild(groupDiv);
+        }
+    }
+
+    window.deleteKbFact = async function (id) {
+        if (confirm('Delete this fact unconditionally?')) {
+            try {
+                await fetch(`/api/memory/${id}`, { method: 'DELETE' });
+                await window.loadKnowledgeBase();
+                if (currentKbViewMode === 'map') renderMindMap();
+                loadMemory(); // Refresh sidebar too if open
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    };
+
+    window.editKbFact = async function (id, currentContent, currentTier) {
+        const newContent = prompt("Edit Fact Content:", currentContent);
+        if (newContent === null) return;
+
+        const newTier = prompt("Edit Tier (Conversational, Personal, Project, Research):", currentTier);
+        if (newTier === null) return;
+
+        try {
+            await fetch(`/api/memory/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: newContent, tier: newTier })
+            });
+            window.loadKnowledgeBase();
+            loadMemory();
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // Simple HTML escape
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Attach search listener
+    const kbSearchBox = document.getElementById('kb-search-input');
+    if (kbSearchBox) {
+        kbSearchBox.addEventListener('input', () => {
+            renderKnowledgeBase();
+            if (currentKbViewMode === 'map') renderMindMap();
+        });
+    }
+
+    // --- KB Tier Filter Logic ---
+    window.setKbTierFilter = function (tier) {
+        kbActiveTierFilter = tier;
+        // Update pill styling
+        document.querySelectorAll('.kb-tier-pill').forEach(pill => {
+            pill.classList.remove('active');
+            if (pill.getAttribute('data-tier') === tier) {
+                pill.classList.add('active');
+            }
+        });
+        renderKnowledgeBase();
+        if (currentKbViewMode === 'map') renderMindMap();
+    };
+
+
+
+    // --- Mind Map View Logic ---
+    let currentKbViewMode = 'list';
+
+    window.toggleKbViewMode = function (mode) {
+        currentKbViewMode = mode;
+        const listContainer = document.getElementById('kb-facts-container');
+        const mapContainer = document.getElementById('kb-map-container');
+
+        if (mode === 'list') {
+            listContainer.classList.remove('hidden');
+            mapContainer.classList.add('hidden');
+        } else {
+            listContainer.classList.add('hidden');
+            mapContainer.classList.remove('hidden');
+            renderMindMap();
+        }
+    }
+
+    window.renderMindMap = function () {
+        const mapContainer = document.getElementById('kb-map-container');
+        const searchInput = document.getElementById('kb-search-input');
+        if (!mapContainer || currentKbViewMode !== 'map') return;
+
+        // Ensure D3 is loaded
+        if (typeof d3 === 'undefined') {
+            mapContainer.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500 pt-20">Waiting for Data Visualization Engine...</div>';
+            return;
+        }
+
+        const searchTerm = (searchInput ? searchInput.value : '').toLowerCase();
+
+        // Prepare nodes (Filter by search term)
+        let nodes = kbFactsData.filter(fact => {
+            const matchesContent = fact.content && fact.content.toLowerCase().includes(searchTerm);
+            const matchesSource = fact.source && fact.source.toLowerCase().includes(searchTerm);
+            const matchesProject = fact.project_name && fact.project_name.toLowerCase().includes(searchTerm);
+            return matchesContent || matchesSource || matchesProject;
+        });
+
+        const activeNodeIds = new Set(nodes.map(n => n.id));
+
+        // Prepare links (Only include links where BOTH source and target are in our active nodes)
+        let links = kbEdgesData.filter(edge => activeNodeIds.has(edge.source_node_id) && activeNodeIds.has(edge.target_node_id)).map(edge => ({
+            source: edge.source_node_id,
+            target: edge.target_node_id,
+            type: edge.relationship_type,
+            weight: edge.weight
+        }));
+
+        // Render D3 SVG
+        const canvasContainer = document.getElementById('kb-map-canvas');
+        if (!canvasContainer) return;
+        canvasContainer.innerHTML = '';
+
+        // Helper to format ELABORATES_ON to Elaborates On
+        const formatRelType = (type) => {
+            if (!type) return '';
+            return type.toLowerCase().split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        };
+
+        // Grab container dimensions
+        const width = canvasContainer.clientWidth || window.innerWidth - 320;
+        const height = canvasContainer.clientHeight || window.innerHeight - 150;
+
+        const svg = d3.select('#kb-map-canvas').append('svg')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('viewBox', [0, 0, width, height]);
+
+        // Add defs for arrowheads
+        svg.append('defs').append('marker')
+            .attr('id', 'arrow')
+            .attr('viewBox', '0 -5 10 10')
+            .attr('refX', 22) // shift arrowhead to edge of circle
+            .attr('refY', 0)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .append('path')
+            .attr('fill', '#606bd2') // primary color
+            .attr('d', 'M0,-5L10,0L0,5');
+
+        // Main group with zoom
+        const g = svg.append('g');
+
+        svg.call(d3.zoom()
+            .extent([[0, 0], [width, height]])
+            .scaleExtent([0.1, 4])
+            .on('zoom', (event) => {
+                g.attr('transform', event.transform);
+            }));
+
+        // Force Simulation Physics
+        const simulation = d3.forceSimulation(nodes)
+            .force('link', d3.forceLink(links).id(d => d.id).distance(200)) // increase edge length
+            .force('charge', d3.forceManyBody().strength(-600)) // stronger repulsion
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collide', d3.forceCollide().radius(80)); // aggressively prevent overlaps for wide HTML labels
+
+        // Draw Links as fluid, glowing Bezier curves (path instead of line)
+        const link = g.append('g')
+            .selectAll('path')
+            .data(links)
+            .join('path')
+            .attr('fill', 'none')
+            .attr('stroke', '#606bd2') // premium glowing primary color
+            .attr('stroke-opacity', 0.4)
+            .attr('stroke-width', d => Math.max(1.5, d.weight * 2.5))
+            .attr('marker-end', 'url(#arrow)');
+
+        // Draw Link Labels (relationship_type) - Hidden by default to reduce clutter
+        const linkLabels = g.append('g')
+            .selectAll('text')
+            .data(links)
+            .join('text')
+            .text(d => formatRelType(d.type))
+            .attr('font-size', '9px')
+            .attr('fill', '#cbd5e1') // slate-300
+            .attr('text-anchor', 'middle')
+            .style('pointer-events', 'none')
+            .attr('opacity', 0) // Hide by default
+            .attr('dy', -4);
+
+        const tierColors = {
+            'Conversational': '#94a3b8', // tier-conv
+            'Personal': '#34d399', // tier-personal
+            'Project': '#60a5fa', // tier-project
+            'Research': '#c084fc' // tier-research
+        };
+
+        const tierIcons = {
+            'Conversational': 'chat', // chat
+            'Personal': 'person', // person
+            'Project': 'account_tree', // account_tree
+            'Research': 'science' // science
+        };
+
+        // Node group (contains circle, icon, text background, and text)
+        const node = g.append('g')
+            .selectAll('g')
+            .data(nodes)
+            .join('g')
+            .attr('class', 'cursor-pointer')
+            .call(drag(simulation));
+
+        // Add shadow filter
+        svg.append("defs").append("filter")
+            .attr("id", "glow")
+            .append("feGaussianBlur")
+            .attr("stdDeviation", "2.5")
+            .attr("result", "coloredBlur");
+
+        const feMerge = d3.select("#glow").append("feMerge");
+        feMerge.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+        // Calculate Degree Centrality (Connection Count) for Dynamic Sizing
+        nodes.forEach(n => {
+            n.connectionCount = links.filter(l => l.source === n.id || l.target === n.id).length;
+            n.radius = Math.min(35, 16 + (n.connectionCount * 3));
+        });
+
+        // The circle container (Dynamic Radius based on Degree Centrality)
+        node.append('circle')
+            .attr('r', d => d.radius)
+            .attr('fill', '#0f111a') // deepest background
+            .attr('stroke', d => tierColors[d.tier] || tierColors['Conversational'])
+            .attr('stroke-width', d => d.connectionCount > 2 ? 3 : 2)
+            .attr('stroke-opacity', 0.8)
+            .style('filter', 'url(#glow)');
+
+        // Material Symbols Icon (Dynamic Size)
+        node.append('text')
+            .attr('class', 'material-symbols-outlined pointer-events-none drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]')
+            .attr('text-anchor', 'middle')
+            .attr('dominant-baseline', 'central')
+            .attr('fill', d => tierColors[d.tier] || tierColors['Conversational'])
+            .attr('font-size', d => `${Math.max(16, d.radius * 0.8)}px`)
+            .text(d => tierIcons[d.tier] || tierIcons['Conversational']);
+
+        // HTML Label (foreignObject for beautiful Tailwind CSS typography instead of ugly SVG text)
+        node.append("foreignObject")
+            .attr("width", 200)
+            .attr("height", 80)
+            .attr("x", -100)
+            .attr("y", d => d.radius + 6)
+            .style("pointer-events", "none")
+            .style("overflow", "visible")
+            .append("xhtml:div")
+            .attr("class", "flex flex-col items-center justify-start w-full")
+            .html(d => `
+                <div class="px-2.5 py-1 rounded-full border truncate max-w-[160px] text-center flex items-center justify-center transition-all ${d.tier === 'Research' ? 'bg-[#0B0C15]/95 border-tier-research/50 text-gray-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]' :
+                    d.tier === 'Project' ? 'bg-[#0B0C15]/95 border-tier-project/50 text-white shadow-glow-blue' :
+                        d.tier === 'Personal' ? 'bg-[#0B0C15]/95 border-tier-personal/50 text-gray-300 shadow-glow-green' :
+                            'bg-[#0B0C15]/95 border-tier-conv/50 text-gray-400'
+                }">
+                    <span class="text-[10px] font-medium tracking-wide drop-shadow-md">${escapeHtml(d.content.length > 25 ? d.content.substring(0, 22) + '...' : d.content)}</span>
+                </div>
+            `);
+
+        // Setup tooltip for nodes
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "absolute opacity-0 pointer-events-none p-3 max-w-sm rounded border border-border-dark bg-background-dark/95 shadow-xl backdrop-blur-md text-white z-50 transition-opacity duration-200")
+            .style("font-size", "12px");
+
+        node.on("mouseover", (event, d) => {
+            tooltip.transition().duration(200).style("opacity", 1);
+            tooltip.html(`
+                <div class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: ${tierColors[d.tier] || tierColors['Conversational']}">${d.tier}</div>
+                <div class="mb-2 leading-tight">${escapeHtml(d.content)}</div>
+                <div class="flex justify-between text-[10px] text-slate-400">
+                    <span>Rank: ${Math.round((d.relevance_score || 0) * 100)}%</span>
+                    <span>Src: ${escapeHtml(d.source === 'auto_extract' ? 'Auto Extracted' : (d.source || 'General'))}</span>
+                </div>
+            `)
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY + 15) + "px");
+
+            // Highlight connected edges and show labels
+            link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1.0 : 0.1);
+            linkLabels.attr('opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1.0 : 0.0);
+        })
+            .on("mouseout", () => {
+                tooltip.transition().duration(500).style("opacity", 0);
+                link.attr('stroke-opacity', 0.6);
+                linkLabels.attr('opacity', 0);
+            })
+            .on("click", (event, d) => {
+                const panel = document.getElementById('kb-map-info-panel');
+                const contentEl = document.getElementById('info-panel-content');
+                const badgeEl = document.getElementById('info-panel-badge');
+                const sourceContEl = document.getElementById('info-panel-source-container');
+                const sourceEl = document.getElementById('info-panel-source');
+                const edgesEl = document.getElementById('info-panel-edges');
+
+                // Populate basic info
+                contentEl.textContent = d.content;
+
+                // Badge styling
+                badgeEl.textContent = d.tier;
+                badgeEl.className = `px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border`;
+                if (d.tier === 'Research') badgeEl.classList.add('bg-purple-500/20', 'text-purple-400', 'border-purple-500/20');
+                else if (d.tier === 'Project') badgeEl.classList.add('bg-primary/20', 'text-primary', 'border-primary/20');
+                else if (d.tier === 'Personal') badgeEl.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/20');
+                else badgeEl.classList.add('bg-slate-500/20', 'text-slate-400', 'border-slate-500/20');
+
+                // Source formatting
+                let displaySource = d.source || 'General';
+                if (displaySource === 'auto_extract') displaySource = 'Auto Extracted';
+
+                if (displaySource !== 'Conversation') {
+                    sourceContEl.classList.remove('hidden');
+                    sourceContEl.classList.add('block');
+                    sourceEl.textContent = displaySource;
+                } else {
+                    sourceContEl.classList.add('hidden');
+                    sourceContEl.classList.remove('block');
+                }
+
+                // Relationships
+                edgesEl.innerHTML = '';
+                const connectedEdges = links.filter(l => l.source.id === d.id || l.target.id === d.id);
+                if (connectedEdges.length === 0) {
+                    edgesEl.innerHTML = '<div class="text-xs text-slate-500 italic">No network connections.</div>';
+                } else {
+                    connectedEdges.forEach(edge => {
+                        const isSource = edge.source.id === d.id;
+                        const relatedNode = isSource ? edge.target : edge.source;
+                        const directionIcon = isSource ? 'arrow_forward' : 'arrow_back';
+
+                        const edgeHtml = `
+                        <div class="p-2 rounded bg-black/20 border border-white/5 flex flex-col gap-1 hover:bg-black/40 transition-colors cursor-default">
+                             <div class="flex items-center gap-1.5">
+                                 <span class="text-[10px] font-medium text-slate-200 px-2 py-0.5 rounded bg-white/5 border border-white/10">${formatRelType(edge.type)}</span>
+                                 <span class="material-symbols-outlined text-[12px] text-slate-500">${directionIcon}</span>
+                                 <span class="text-[8px] text-slate-500 uppercase tracking-wider">${isSource ? 'Outbound' : 'Inbound'}</span>
+                             </div>
+                             <div class="text-xs text-slate-300 truncate mt-1" title="${escapeHtml(relatedNode.content)}">
+                                 ${escapeHtml(relatedNode.content)}
+                             </div>
+                        </div>
+                    `;
+                        edgesEl.innerHTML += edgeHtml;
+                    });
+                }
+
+                // Slide panel in
+                panel.classList.remove('right-[-400px]');
+                panel.classList.add('right-6');
+
+                // Setup edit/delete buttons
+                document.getElementById('info-panel-edit-btn').onclick = () => window.editKbFact(d.id, d.content, d.tier);
+                document.getElementById('info-panel-delete-btn').onclick = () => window.deleteKbFact(d.id);
+            });
+
+        // Close panel logic
+        const closeBtn = document.getElementById('close-info-panel-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                const panel = document.getElementById('kb-map-info-panel');
+                panel.classList.remove('right-6');
+                panel.classList.add('right-[-400px]');
+            });
+        }
+
+        // The simulation tick loop handles physics updates
+        simulation.on('tick', () => {
+            link.attr('d', d => {
+                const dx = d.target.x - d.source.x;
+                const dy = d.target.y - d.source.y;
+                const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; // Controls curve arc
+
+                // Calculate correct endpoint to not draw inside the target circle radius
+                const targetRadius = d.target.radius || 16;
+                const ratio = (targetRadius + 6) / Math.sqrt(dx * dx + dy * dy); // +6 for arrowhead padding
+                const targetX = d.target.x - (dx * ratio);
+                const targetY = d.target.y - (dy * ratio);
+
+                return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+            });
+
+            linkLabels
+                .attr('x', d => (d.source.x + d.target.x) / 2)
+                .attr('y', d => (d.source.y + d.target.y) / 2 - 10);
+
+            node.attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+
+        // Drag handlers for D3
+        function drag(sim) {
+            function dragstarted(event) {
+                if (!event.active) sim.alphaTarget(0.3).restart();
+                event.subject.fx = event.subject.x;
+                event.subject.fy = event.subject.y;
+            }
+
+            function dragged(event) {
+                event.subject.fx = event.x;
+                event.subject.fy = event.y;
+            }
+
+            function dragended(event) {
+                if (!event.active) sim.alphaTarget(0);
+                event.subject.fx = null;
+                event.subject.fy = null;
+            }
+
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
+    }
+
+
 
     // Initial load
     loadMemory();

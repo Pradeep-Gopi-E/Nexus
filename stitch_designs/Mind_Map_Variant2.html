@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexus AI Knowledge Base Graph Variant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b2bee",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101022",
+                        "tier-gray": "#94a3b8",
+                        "tier-green": "#22c55e",
+                        "tier-blue": "#3b82f6",
+                        "tier-purple": "#a855f7",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-node {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .neon-line {
+            box-shadow: 0 0 8px currentColor;
+        }
+        .nebula-bg {
+            background: radial-gradient(circle at 50% 50%, #1a1a3a 0%, #101022 100%);
+        }
+        .nebula-glow {
+            background: radial-gradient(circle at 20% 30%, rgba(43, 43, 238, 0.15) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased overflow-hidden">
+<div class="relative flex h-screen w-full flex-col overflow-hidden nebula-bg">
+<div class="absolute inset-0 nebula-glow pointer-events-none"></div>
+<header class="relative z-10 flex items-center justify-between px-6 pt-12 pb-4">
+<button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-lg font-bold tracking-tight">Knowledge Base</h1>
+<button class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<div class="relative z-10 flex justify-center px-4 py-2">
+<div class="flex h-11 w-64 items-center justify-center rounded-full bg-slate-200/50 dark:bg-white/10 backdrop-blur-md p-1 border border-white/10">
+<button class="flex h-full flex-1 items-center justify-center rounded-full text-sm font-medium text-slate-500 dark:text-slate-400">
+                    List
+                </button>
+<button class="flex h-full flex-1 items-center justify-center rounded-full bg-white dark:bg-primary shadow-lg text-sm font-bold text-primary dark:text-white">
+                    Graph
+                </button>
+</div>
+</div>
+<main class="relative flex-1 @container">
+<div class="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing">
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="w-px h-24 bg-tier-purple/30 neon-line absolute -bottom-24 rotate-[30deg] origin-top"></div>
+<div class="w-px h-20 bg-tier-purple/30 neon-line absolute -bottom-20 -rotate-[45deg] origin-top"></div>
+<div class="relative group">
+<div class="absolute -inset-4 bg-tier-purple/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="glass-node size-20 rounded-full flex items-center justify-center shadow-2xl relative z-10 border-tier-purple/40">
+<span class="material-symbols-outlined text-tier-purple text-3xl">auto_awesome</span>
+</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-tier-purple/80">Research Hub</div>
+</div>
+</div>
+<div class="absolute top-2/3 left-1/4 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="w-px h-28 bg-tier-blue/30 neon-line absolute -top-28 rotate-[15deg] origin-bottom"></div>
+<div class="relative group">
+<div class="absolute -inset-4 bg-tier-blue/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="glass-node size-24 rounded-full flex items-center justify-center shadow-2xl relative z-10 border-tier-blue/40">
+<span class="material-symbols-outlined text-tier-blue text-4xl">description</span>
+</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-tier-blue/80">Project Alpha</div>
+</div>
+<div class="absolute -right-24 top-0 flex flex-col items-center">
+<div class="w-16 h-px bg-tier-blue/20 neon-line absolute right-full top-1/2"></div>
+<div class="glass-node size-12 rounded-full flex items-center justify-center shadow-lg border-tier-blue/20">
+<span class="material-symbols-outlined text-tier-blue text-sm">fact_check</span>
+</div>
+</div>
+</div>
+<div class="absolute top-1/2 right-1/4 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+<div class="relative group">
+<div class="absolute -inset-4 bg-tier-green/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="glass-node size-16 rounded-full flex items-center justify-center shadow-2xl relative z-10 border-tier-green/40">
+<span class="material-symbols-outlined text-tier-green text-2xl">person</span>
+</div>
+<div class="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold uppercase tracking-widest text-tier-green/80">Personal</div>
+</div>
+</div>
+<div class="absolute top-[80%] right-[15%] flex flex-col items-center">
+<div class="glass-node size-10 rounded-full flex items-center justify-center shadow-lg border-tier-gray/20">
+<span class="material-symbols-outlined text-tier-gray text-lg">chat_bubble</span>
+</div>
+</div>
+</div>
+<div class="absolute bottom-8 right-6 flex flex-col gap-4 items-end">
+<button class="flex size-14 items-center justify-center rounded-full bg-primary shadow-xl shadow-primary/40 text-white active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl">filter_center_focus</span>
+</button>
+</div>
+<div class="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+<div class="flex size-10 items-center justify-center rounded-t-full bg-white/5 backdrop-blur-md border border-white/10">
+<span class="material-symbols-outlined text-white/70">add</span>
+</div>
+<div class="flex size-10 items-center justify-center rounded-b-full bg-white/5 backdrop-blur-md border border-white/10">
+<span class="material-symbols-outlined text-white/70">remove</span>
+</div>
+</div>
+</main>
+<div class="relative z-10 px-4 py-4">
+<div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white/5 border border-white/10 px-4 backdrop-blur-sm">
+<div class="size-2 rounded-full bg-tier-gray"></div>
+<p class="text-white/80 text-xs font-medium">Conversational</p>
+</div>
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-tier-green/10 border border-tier-green/30 px-4 backdrop-blur-sm">
+<div class="size-2 rounded-full bg-tier-green"></div>
+<p class="text-tier-green text-xs font-medium">Personal</p>
+</div>
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-tier-blue/10 border border-tier-blue/30 px-4 backdrop-blur-sm">
+<div class="size-2 rounded-full bg-tier-blue"></div>
+<p class="text-tier-blue text-xs font-medium">Project</p>
+</div>
+<div class="flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-full bg-tier-purple/10 border border-tier-purple/30 px-4 backdrop-blur-sm">
+<div class="size-2 rounded-full bg-tier-purple"></div>
+<p class="text-tier-purple text-xs font-medium">Research</p>
+</div>
+</div>
+</div>
+<nav class="relative z-10 flex gap-2 border-t border-white/5 bg-white/5 backdrop-blur-xl px-4 pb-8 pt-3">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-[10px] font-medium">Home</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<p class="text-[10px] font-medium">Nexus AI</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1">hub</span>
+<p class="text-[10px] font-medium">Knowledge</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-[10px] font-medium">Settings</p>
+</a>
+</nav>
+</div>
+</body></html>

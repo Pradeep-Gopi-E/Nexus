@@ -1,149 +1,629 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Advanced Control</title>
-    <!-- Modern Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/styles.css">
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Nexus AI - Advanced Reasoning Dashboard</title>
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
     <!-- Marked.js for Markdown rendering -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Ionicons for sleek icons -->
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <!-- D3.js for Graph Physics -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#818cf8",
+                        "primary-hover": "#6366f1",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#050508",
+                        "surface-dark": "#0B0C15",
+                        "surface-lighter": "#13141c",
+                        "border-dark": "#1f2937",
+                        "tier-research": "#c084fc",
+                        "tier-project": "#60a5fa",
+                        "tier-personal": "#34d399",
+                        "tier-conv": "#94a3b8",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                    boxShadow: {
+                        "glow": "0 0 20px rgba(96, 107, 210, 0.15)",
+                        "glow-purple": "0 0 25px rgba(168, 85, 247, 0.4)",
+                        "glow-blue": "0 0 25px rgba(59, 130, 246, 0.4)",
+                        "glow-green": "0 0 25px rgba(16, 185, 129, 0.4)",
+                        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+                    },
+                    animation: {
+                        'float': 'float 8s ease-in-out infinite',
+                        'twinkle': 'twinkle 4s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'ripple': 'ripple 3s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-15px)' },
+                        },
+                        twinkle: {
+                            '0%, 100%': { opacity: '0.2', transform: 'scale(1)' },
+                            '50%': { opacity: '0.8', transform: 'scale(1.2)' },
+                        },
+                        ripple: {
+                            '0%': { width: '0px', height: '0px', opacity: '0.5' },
+                            '100%': { width: '200px', height: '200px', opacity: '0' },
+                        }
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #2a2c35;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #606bd2;
+        }
+
+        .glass-panel {
+            background: rgba(22, 23, 29, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Premium Nebula Background */
+        .nebula-background {
+            background: radial-gradient(circle at 50% 50%, #1a1b4b 0%, #050508 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nebula-cloud {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .grid-layer {
+            background-size: 100px 100px;
+            background-image:
+                linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .gravitational-ripple {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 50%;
+            animation: ripple 4s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .node-container:hover .gravitational-ripple {
+            border-color: rgba(168, 85, 247, 0.5);
+            animation-duration: 2s;
+        }
+
+        /* KB Tier Filter Pills */
+        .kb-tier-pill {
+            background: transparent;
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            cursor: pointer;
+        }
+
+        .kb-tier-pill:hover {
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #e2e8f0;
+        }
+
+        .kb-tier-pill.active {
+            background: rgba(129, 140, 248, 0.15);
+            border-color: rgba(129, 140, 248, 0.4);
+            color: #818cf8;
+        }
+
+        .kb-tier-pill[data-tier="Research"].active {
+            background: rgba(192, 132, 252, 0.15);
+            border-color: rgba(192, 132, 252, 0.4);
+            color: #c084fc;
+        }
+
+        .kb-tier-pill[data-tier="Project"].active {
+            background: rgba(96, 165, 250, 0.15);
+            border-color: rgba(96, 165, 250, 0.4);
+            color: #60a5fa;
+        }
+
+        .kb-tier-pill[data-tier="Personal"].active {
+            background: rgba(52, 211, 153, 0.15);
+            border-color: rgba(52, 211, 153, 0.4);
+            color: #34d399;
+        }
+
+        .kb-tier-pill[data-tier="Conversational"].active {
+            background: rgba(148, 163, 184, 0.15);
+            border-color: rgba(148, 163, 184, 0.4);
+            color: #94a3b8;
+        }
+    </style>
 </head>
 
-<body>
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased h-screen w-screen flex flex-col overflow-hidden">
 
-    <div class="app-container">
-        <!-- Main Chat Area -->
-        <main class="chat-area">
+    <script>
+        function toggleView(view) {
+            const reasoningView = document.getElementById('reasoning-view');
+            const knowledgeView = document.getElementById('knowledge-base-view');
+            const rightSidebar = document.getElementById('right-sidebar');
+            const navReasoning = document.getElementById('nav-reasoning');
+            const navKnowledge = document.getElementById('nav-knowledge');
 
-            <div class="watermark">
-                <div class="brand-icon-small">
-                    <ion-icon name="planet-outline"></ion-icon>
+            if (view === 'reasoning') {
+                reasoningView.classList.remove('hidden');
+                rightSidebar.classList.remove('hidden');
+                knowledgeView.classList.add('hidden');
+
+                navReasoning.classList.add('text-white', 'bg-white/5');
+                navReasoning.classList.remove('text-slate-400');
+
+                navKnowledge.classList.remove('text-white', 'bg-white/5');
+                navKnowledge.classList.add('text-slate-400');
+            } else {
+                reasoningView.classList.add('hidden');
+                rightSidebar.classList.add('hidden');
+                knowledgeView.classList.remove('hidden');
+
+                navKnowledge.classList.add('text-white', 'bg-white/5');
+                navKnowledge.classList.remove('text-slate-400');
+
+                navReasoning.classList.remove('text-white', 'bg-white/5');
+                navReasoning.classList.add('text-slate-400');
+
+                // Trigger dynamic load
+                if (window.loadKnowledgeBase) window.loadKnowledgeBase();
+            }
+        }
+    </script>
+
+    <!-- Top Navigation -->
+    <header
+        class="h-16 border-b border-border-dark dark:bg-surface-dark flex items-center justify-between px-6 shrink-0 z-20">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3 text-white group cursor-pointer">
+                <div
+                    class="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200">
+                    <span class="material-symbols-outlined text-[20px]">smart_toy</span>
                 </div>
-                <h2>Nexus AI</h2>
+                <h2 class="text-white text-lg font-bold tracking-tight">Nexus AI</h2>
+            </div>
+            <div class="h-6 w-px bg-border-dark mx-2 hidden md:block"></div>
+            <nav class="hidden md:flex items-center gap-1">
+                <a id="nav-reasoning"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-white/5 cursor-pointer"
+                    onclick="toggleView('reasoning')">Reasoning Engine</a>
+                <a id="nav-knowledge"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                    onclick="toggleView('knowledge')">Knowledge Base</a>
+            </nav>
+        </div>
+        <div class="flex items-center gap-4">
+            <div
+                class="hidden lg:flex items-center px-3 py-1.5 border border-white/10 rounded-full bg-black/20 text-xs text-gray-300 gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                System Operational
             </div>
 
-            <header class="chat-header-minimal">
-                <div>
-                    <h1>LangGraph Reasoning Engine</h1>
-                    <p class="subtitle">Context-aware retrieval & synthesis</p>
-                </div>
-            </header>
 
-            <div class="messages-container" id="messages-container">
-                <!-- Chat messages injected here -->
-                <div class="message system-msg">
-                    <div class="avatar"><ion-icon name="hardware-chip-outline"></ion-icon></div>
-                    <div class="bubble">
-                        Nexus Core initialized. I have full access to your ChromaDB vector store and SQLite memory
-                        schema. What would you like to investigate?
-                    </div>
-                </div>
+
+            <div
+                class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white/10 shadow-lg cursor-pointer">
+                U
             </div>
+        </div>
+    </header>
 
-            <div class="input-area">
-                <div class="input-controls">
-                    <div class="upload-mini" id="upload-zone">
-                        <ion-icon name="cloud-upload-outline"></ion-icon>
-                        <span>Attach PDF/MD</span>
-                        <input type="file" id="file-input" accept=".pdf,.md" hidden>
-                    </div>
-                    <div id="upload-status" class="status-msg"></div>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex overflow-hidden relative">
 
-                    <div class="provider-switch-mini">
-                        <select id="llm-provider">
-                            <option value="gemini" selected>Google Gemini</option>
-                            <option value="openai">OpenAI GPT-4o</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="input-wrapper">
-                    <textarea id="chat-input" placeholder="Message Nexus..." rows="1"></textarea>
-                    <button id="send-btn" class="send-btn">
-                        <ion-icon name="send"></ion-icon>
-                    </button>
-                </div>
-                <p class="disclaimer">Nexus uses advanced multi-agent workflows. Complex reasoning may take a moment.
-                </p>
+        <!-- Left Sidebar (Collapsible/Icons) -->
+        <aside
+            class="w-16 flex flex-col items-center py-6 border-r border-border-dark bg-surface-dark hidden sm:flex shrink-0 z-10">
+            <div class="flex flex-col gap-4 w-full px-2">
+                <button id="new-project-btn"
+                    class="size-10 mx-auto rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-glow transition-all hover:scale-105"
+                    title="New Workspace">
+                    <span class="material-symbols-outlined text-[20px]">add</span>
+                </button>
+                <div class="h-px w-8 bg-border-dark mx-auto my-2"></div>
+                <button id="toggle-past-work-btn"
+                    class="size-10 mx-auto rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors"
+                    title="Past Work">
+                    <span class="material-symbols-outlined text-[20px]">history</span>
+                </button>
             </div>
-        </main>
-
-        <!-- Right Sidebar for Documents & Project Control -->
-        <aside class="sidebar right-sidebar">
-
-            <!-- Active Documents -->
-            <div class="sidebar-section">
-                <h3><ion-icon name="folder-open-outline"></ion-icon> Active Documents</h3>
-                <ul class="memory-list" id="document-list" style="max-height: 250px;">
-                    <!-- Dynamic docs injected here -->
-                </ul>
+            <div class="mt-auto flex flex-col gap-4">
+                <div class="size-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] mx-auto"
+                    title="System Online"></div>
             </div>
-
-            <!-- Core Memory -->
-            <div class="sidebar-section flex-grow"
-                style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                <h3><ion-icon name="library-outline"></ion-icon> <span id="current-project-name">Memory</span></h3>
-                <ul class="memory-list" id="memory-list">
-                    <!-- Dynamic facts injected here -->
-                </ul>
-                <div class="add-memory-box">
-                    <input type="text" id="new-fact-input" placeholder="Teach Nexus a fact...">
-                    <button id="add-fact-btn"><ion-icon name="add-outline"></ion-icon></button>
-                </div>
-            </div>
-
-            <!-- Past Chats / Project Context -->
-            <div class="sidebar-section"
-                style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-                <div style="display: flex; gap: 8px;">
-                    <button id="new-project-btn" class="primary-btn"
-                        style="flex: 1; border-radius: 8px; padding: 10px; text-transform: none; display: flex; justify-content: center; align-items: center; gap: 6px;">
-                        <ion-icon name="add-outline"></ion-icon> New Work
-                    </button>
-                    <button id="toggle-past-work-btn" class="secondary-btn"
-                        style="flex: 1; border-radius: 8px; padding: 10px; display: flex; justify-content: center; align-items: center; gap: 6px;">
-                        <ion-icon name="time-outline"></ion-icon> Past Work
-                    </button>
-                </div>
-
-                <div id="past-work-container"
-                    style="display: none; margin-top: 12px; flex-direction: column; gap: 8px;">
-                    <ul class="memory-list" id="project-list" style="max-height: 200px; overflow-y: auto;">
-                        <li class="memory-item" style="color: var(--text-muted); justify-content:center;">Loading...
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="system-status" style="margin-top: 12px; justify-content: center;">
-                    <span class="status-dot online"></span>
-                    <span>System Online</span>
-                </div>
-            </div>
-
         </aside>
 
-    </div>
+        <!-- Project List Slide-out Window (Hidden by default) -->
+        <div id="past-work-container"
+            class="absolute left-16 top-0 bottom-0 w-64 bg-surface-dark border-r border-border-dark z-30 shadow-2xl flex-col"
+            style="display: none;">
+            <div class="p-4 border-b border-border-dark">
+                <h3 class="text-sm font-semibold text-white">Project History</h3>
+            </div>
+            <ul id="project-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <li class="p-2 text-sm text-slate-500 text-center">Loading...</li>
+            </ul>
+        </div>
+
+        <!-- Chat Area (Reasoning Engine) -->
+        <section id="reasoning-view"
+            class="flex-1 flex flex-col relative min-w-0 bg-gradient-to-b from-surface-dark/20 to-transparent">
+
+            <!-- Header for Session -->
+            <div
+                class="absolute top-0 left-0 right-0 p-6 z-10 bg-gradient-to-b from-background-dark via-background-dark/80 to-transparent pointer-events-none">
+                <div class="flex items-center justify-between pointer-events-auto">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span
+                                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/20 text-primary border border-primary/20">Active
+                                Session</span>
+                            <span class="text-slate-500 text-xs" id="current-project-name">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Scroll Area -->
+            <div id="messages-container"
+                class="flex-1 overflow-y-auto pt-24 pb-48 px-6 md:px-20 lg:px-40 scroll-smooth">
+                <!-- Javascript will inject bubbles here. 
+                     Note: our `app.js` builds its own HTML for bubbles, so we will need to update `app.js` 
+                     slightly to use the beautiful Tailwind classes provided by Stitch! We'll fix that next. -->
+            </div>
+
+            <!-- Input Dock -->
+            <div
+                class="absolute bottom-6 left-0 right-0 px-4 md:px-20 lg:px-40 flex justify-center z-20 flex-col items-center">
+
+                <div id="upload-status" class="text-xs text-primary mb-2 font-medium"></div>
+
+                <div
+                    class="w-full max-w-3xl glass-panel rounded-2xl p-2 shadow-glass relative group ring-1 ring-white/10 focus-within:ring-primary/50 transition-all flex flex-col">
+
+                    <div id="image-preview-container"
+                        class="mb-2 bg-black/20 border border-white/10 rounded-lg p-2 flex items-center gap-2 shadow-lg w-fit relative group/img hidden mx-2 mt-2">
+                        <img id="image-preview" src="" class="h-16 rounded object-cover border border-white/5">
+                        <button id="remove-image-btn"
+                            class="absolute -top-2 -right-2 bg-red-500/80 hover:bg-red-500 text-white rounded-full p-1 shadow-lg backdrop-blur-md transition-all opacity-0 group-hover/img:opacity-100 scale-90 hover:scale-100 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                    </div>
+
+                    <textarea id="chat-input"
+                        class="w-full bg-transparent border-0 text-slate-200 placeholder-slate-500 focus:ring-0 resize-none py-3 px-4 max-h-32 text-sm leading-6 scrollbar-hide outline-none"
+                        placeholder="Ask Nexus anything or paste an image..." rows="1"></textarea>
+
+                    <div class="flex justify-between items-center px-2 pb-1 pt-1">
+                        <div class="flex items-center gap-1">
+                            <button id="upload-zone"
+                                class="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                title="Upload Document">
+                                <span class="material-symbols-outlined text-[20px]">attach_file</span>
+                                <input type="file" id="file-input" accept=".pdf,.md,.xlsx,.csv,.doc,.docx,.ppt,.pptx"
+                                    hidden>
+                            </button>
+                            <button id="image-upload-zone"
+                                class="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                title="Attach Image">
+                                <span class="material-symbols-outlined text-[20px]">image</span>
+                                <input type="file" id="image-input" accept="image/png, image/jpeg, image/webp" hidden>
+                            </button>
+                            <select id="llm-provider"
+                                class="bg-transparent border border-white/10 hover:border-white/20 text-xs rounded-lg px-2 py-1 text-slate-400 focus:outline-none focus:border-primary cursor-pointer shadow-sm mx-2">
+                                <option value="gemini" class="bg-surface-dark text-slate-200" selected>Google Gemini Pro
+                                </option>
+                                <option value="openai" class="bg-surface-dark text-slate-200">OpenAI GPT-4o</option>
+                            </select>
+                        </div>
+                        <button id="send-btn"
+                            class="bg-primary hover:bg-primary-hover text-white p-2 rounded-lg transition-all shadow-lg shadow-primary/20 flex items-center justify-center group-focus-within:scale-100 scale-95 opacity-50 group-focus-within:opacity-100 cursor-pointer">
+                            <span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-[10px] text-slate-600 font-medium py-2 mt-2">
+                    Nexus AI can make mistakes. Verify important information.
+                </div>
+            </div>
+        </section>
+
+        <!-- Knowledge Base Area -->
+        <section id="knowledge-base-view"
+            class="flex-1 flex flex-col relative min-w-0 bg-surface-dark overflow-y-auto hidden">
+            <!-- Filter Bar -->
+            <div
+                class="sticky top-0 z-20 p-4 space-y-3 bg-surface-dark/80 backdrop-blur-md border-b border-border-dark">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <span class="material-symbols-outlined text-slate-400 text-xl">search</span>
+                    </div>
+                    <input id="kb-search-input"
+                        class="block w-full pl-10 pr-3 py-2.5 bg-background-dark border border-border-dark rounded-xl text-sm placeholder-slate-500 text-slate-200 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-shadow"
+                        placeholder="Search extracted facts..." type="text" />
+                </div>
+                <div class="flex gap-2 pb-2 overflow-x-auto no-scrollbar items-center flex-wrap">
+                    <div id="kb-project-label"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-background-dark text-slate-300 text-xs font-medium border border-border-dark whitespace-nowrap">
+                        <span class="material-symbols-outlined text-[14px] text-primary">folder</span>
+                        Current Project
+                    </div>
+                    <!-- Tier Filter Pills -->
+                    <div class="flex items-center gap-1 ml-2" id="kb-tier-filters">
+                        <button onclick="setKbTierFilter('All')"
+                            class="kb-tier-pill active px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+                            data-tier="All">All</button>
+                        <button onclick="setKbTierFilter('Research')"
+                            class="kb-tier-pill px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+                            data-tier="Research">Research</button>
+                        <button onclick="setKbTierFilter('Project')"
+                            class="kb-tier-pill px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+                            data-tier="Project">Project</button>
+                        <button onclick="setKbTierFilter('Personal')"
+                            class="kb-tier-pill px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+                            data-tier="Personal">Personal</button>
+                        <button onclick="setKbTierFilter('Conversational')"
+                            class="kb-tier-pill px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+                            data-tier="Conversational">Conv.</button>
+                    </div>
+                    <!-- View Toggle -->
+                    <div
+                        class="flex h-9 items-center justify-center rounded-lg bg-background-dark border border-border-dark p-1 ml-auto">
+                        <label
+                            class="flex cursor-pointer h-full items-center justify-center rounded-md px-3 text-slate-400 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-xs font-semibold">
+                            <span>List</span>
+                            <input checked class="invisible w-0" name="kb-view-toggle" type="radio" value="list"
+                                onchange="toggleKbViewMode('list')" />
+                        </label>
+                        <label
+                            class="flex cursor-pointer h-full items-center justify-center rounded-md px-3 text-slate-400 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-xs font-semibold">
+                            <span>Map</span>
+                            <input class="invisible w-0" name="kb-view-toggle" type="radio" value="map"
+                                onchange="toggleKbViewMode('map')" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content: Fact Cards Container (List View) -->
+            <div class="p-4 space-y-8 pb-24 transition-opacity duration-300" id="kb-facts-container">
+                <!-- Javascript will inject grouped tiers here -->
+                <div class="flex items-center justify-center h-full text-slate-500 text-sm">Loading Knowledge Base...
+                </div>
+            </div>
+
+            <!-- Main Content: Mind Map Container (Hidden by default) -->
+            <div class="absolute inset-0 top-[110px] hidden overflow-hidden nebula-background group"
+                id="kb-map-container">
+
+                <!-- Nebula Starfield and Clouds -->
+                <div class="absolute inset-0 z-0">
+                    <div class="star w-0.5 h-0.5 top-[10%] left-[20%] animate-twinkle" style="animation-delay: 0s;">
+                    </div>
+                    <div class="star w-1 h-1 top-[25%] left-[80%] animate-twinkle opacity-50"
+                        style="animation-delay: 1s;"></div>
+                    <div class="star w-0.5 h-0.5 top-[60%] left-[10%] animate-twinkle" style="animation-delay: 2s;">
+                    </div>
+                    <div class="star w-0.5 h-0.5 top-[80%] left-[70%] animate-twinkle" style="animation-delay: 1.5s;">
+                    </div>
+                    <div class="star w-1 h-1 top-[40%] left-[40%] animate-twinkle opacity-60"
+                        style="animation-delay: 0.5s;"></div>
+                    <div class="star w-0.5 h-0.5 top-[15%] left-[60%] animate-twinkle" style="animation-delay: 3s;">
+                    </div>
+                    <div class="nebula-cloud w-[600px] h-[600px] bg-indigo-900/20 top-[-100px] left-[-100px]"></div>
+                    <div class="nebula-cloud w-[500px] h-[500px] bg-purple-900/20 bottom-[-50px] right-[-50px]"></div>
+                    <div class="nebula-cloud w-[400px] h-[400px] bg-blue-900/10 top-[20%] right-[20%]"></div>
+                    <div class="absolute inset-0 grid-layer opacity-30"></div>
+                </div>
+
+                <!-- Data Visualization Canvas -->
+                <div id="kb-map-canvas" class="absolute inset-0 w-full h-full z-10"></div>
+
+                <!-- Floating Legend (Bottom Left) -->
+                <div class="absolute bottom-6 left-6 z-20 glass-panel rounded-xl p-4 max-w-xs pointer-events-none">
+                    <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Cognitive Tiers</h3>
+                    <div class="space-y-2.5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-tier-research shadow-[0_0_10px_rgba(168,85,247,0.8)]">
+                            </div>
+                            <span class="text-xs text-gray-300">Research</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-tier-project shadow-[0_0_10px_rgba(59,130,246,0.8)]">
+                            </div>
+                            <span class="text-xs text-gray-300">Project</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-tier-personal shadow-[0_0_10px_rgba(16,185,129,0.8)]">
+                            </div>
+                            <span class="text-xs text-gray-300">Personal</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-tier-conv"></div>
+                            <span class="text-xs text-gray-300">Conversational</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sliding Info Panel (Right) -->
+                <div id="kb-map-info-panel"
+                    class="absolute top-6 bottom-6 right-[-400px] w-80 glass-panel border border-white/10 rounded-l-2xl shadow-2xl backdrop-blur-xl z-20 transition-all duration-300 flex flex-col pointer-events-auto">
+                    <!-- Javascript will populate this panel -->
+                    <div class="p-5 border-b border-white/5 flex justify-between items-center">
+                        <div id="info-panel-badge"
+                            class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border">Tier</div>
+                        <button id="close-info-panel-btn"
+                            class="text-slate-500 hover:text-white transition-colors"><span
+                                class="material-symbols-outlined text-lg">close</span></button>
+                    </div>
+                    <div class="p-5 flex-1 overflow-y-auto">
+                        <p id="info-panel-content"
+                            class="text-sm text-white leading-relaxed mb-6 font-medium tracking-wide"></p>
+
+                        <div id="info-panel-source-container" class="mb-6 hidden">
+                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Source / File
+                            </h4>
+                            <div id="info-panel-source"
+                                class="text-xs text-slate-300 bg-black/20 p-2 rounded border border-white/5"></div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Network
+                                Connections</h4>
+                            <div id="info-panel-edges" class="space-y-2">
+                                <!-- Edges rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Actions -->
+                    <div class="p-4 border-t border-white/5 flex gap-2">
+                        <button id="info-panel-edit-btn"
+                            class="flex-1 py-2 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5 flex justify-center items-center"><span
+                                class="material-symbols-outlined text-[16px]">edit</span></button>
+                        <button id="info-panel-delete-btn"
+                            class="flex-1 py-2 text-xs font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition-colors border border-red-500/20 flex justify-center items-center"><span
+                                class="material-symbols-outlined text-[16px]">delete</span></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Right Sidebar (Glassmorphic) -->
+        <aside id="right-sidebar"
+            class="w-80 border-l border-border-dark bg-surface-dark/50 backdrop-blur-md hidden xl:flex flex-col shrink-0 z-10">
+            <div class="p-5 border-b border-border-dark flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-white">Context & Memory</h3>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-6">
+                <!-- Active Documents -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Sources</h4>
+                    </div>
+                    <!-- Document List Container -->
+                    <div class="space-y-2" id="document-list">
+                    </div>
+                </div>
+
+                <!-- Core Memory -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Core Memory</h4>
+                        <select id="memory-sort-select"
+                            class="bg-background-dark text-xs text-slate-300 border border-border-dark rounded-lg px-2 py-1 outline-none cursor-pointer hover:border-primary/50 focus:border-primary transition-colors">
+                            <option value="activation" class="bg-surface-dark text-slate-200">Rank</option>
+                            <option value="tier" class="bg-surface-dark text-slate-200">Tier</option>
+                            <option value="chronological" class="bg-surface-dark text-slate-200">Time</option>
+                        </select>
+                    </div>
+                    <!-- Memory List Container -->
+                    <div class="space-y-3" id="memory-list">
+                    </div>
+
+                    <div class="mt-4 flex gap-2">
+                        <input type="text" id="new-fact-input"
+                            class="flex-1 bg-surface-lighter border border-border-dark rounded-lg text-xs px-3 py-2 text-slate-300 placeholder-slate-600 focus:outline-none focus:border-primary transition-colors"
+                            placeholder="Teach Nexus a fact...">
+                        <button id="add-fact-btn"
+                            class="bg-surface-lighter text-slate-400 hover:text-white border border-border-dark hover:border-primary/50 text-[18px] rounded-lg px-2 flex items-center justify-center transition-colors">
+                            <span class="material-symbols-outlined">add</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
 
     <!-- New Work Modal -->
-    <div id="new-work-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h3>Start New Work</h3>
-            <p>This will open a new workspace in a new tab. Your current work will remain safe here.</p>
-            <input type="text" id="new-work-name" placeholder="Workspace Name">
-            <div class="modal-actions">
-                <button id="cancel-new-work-btn" class="secondary-btn" style="padding: 8px 16px;">Cancel</button>
-                <button id="confirm-new-work-btn" class="primary-btn" style="padding: 8px 16px;">Open Workspace</button>
+    <div id="new-work-modal"
+        class="fixed inset-0 bg-background-dark/80 backdrop-blur-sm z-50 flex items-center justify-center"
+        style="display: none;">
+        <div class="bg-surface-dark border border-border-dark p-6 rounded-2xl max-w-sm w-full shadow-2xl">
+            <h3 class="text-lg font-bold text-white mb-2">Start New Work</h3>
+            <p class="text-sm text-slate-400 mb-4">This will open a new workspace in a new tab. Your current work will
+                remain safe here.</p>
+            <input type="text" id="new-work-name"
+                class="w-full bg-surface-lighter border border-border-dark rounded-lg px-4 py-2 text-slate-200 mb-4 focus:outline-none focus:border-primary"
+                placeholder="Workspace Name">
+            <div class="flex justify-end gap-3">
+                <button id="cancel-new-work-btn"
+                    class="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
+                <button id="confirm-new-work-btn"
+                    class="px-4 py-2 text-sm bg-primary hover:bg-primary-hover text-white rounded-lg shadow-glow transition-all">Open
+                    Workspace</button>
             </div>
         </div>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=3.4"></script>
 </body>
 
 </html>

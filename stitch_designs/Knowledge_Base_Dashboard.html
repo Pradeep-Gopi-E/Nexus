@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexus AI Knowledge Base Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b2bee",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101022",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-panel {
+            background: rgba(35, 35, 72, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="sticky-header glass-panel border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center p-4 justify-between h-16">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl">menu</span>
+<h1 class="text-lg font-bold tracking-tight">Knowledge Base</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center justify-center p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+<span class="material-symbols-outlined text-primary text-xl">person</span>
+</div>
+</div>
+</div>
+<!-- Categories / Tabs -->
+<div class="px-4 overflow-x-auto no-scrollbar">
+<div class="flex gap-6 whitespace-nowrap">
+<a class="flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-2" href="#">
+<p class="text-sm font-semibold">Conversational</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2" href="#">
+<p class="text-sm font-semibold">Personal</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2" href="#">
+<p class="text-sm font-semibold">Project</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2" href="#">
+<p class="text-sm font-semibold">Research</p>
+</a>
+</div>
+</div>
+</header>
+<!-- Filter Bar -->
+<section class="p-4 space-y-3 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
+<div class="relative">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-slate-400 text-xl">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2.5 bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl text-sm placeholder-slate-400 focus:ring-2 focus:ring-primary/50" placeholder="Search extracted facts..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium border border-slate-200 dark:border-slate-700">
+                Cognitive Tier <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-medium border border-slate-200 dark:border-slate-700">
+                All Projects <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<button class="ml-auto flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-white">
+<span class="material-symbols-outlined text-xl">add</span>
+</button>
+</div>
+</section>
+<!-- Main Content: Fact Cards -->
+<main class="flex-1 p-4 space-y-6 pb-24">
+<!-- Tier Group: Conversational -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-xs font-bold uppercase tracking-widest text-slate-500">Conversational Tier</h2>
+<span class="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full font-medium">12 Facts</span>
+</div>
+<!-- Card 1 (Gray/Neutral) -->
+<div class="glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-slate-400">
+<div class="flex justify-between items-start">
+<p class="text-sm leading-relaxed text-slate-300">User prefers concise meeting summaries over full transcripts for daily standups.</p>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-primary">98%</span>
+<span class="text-[10px] text-slate-500">Rel.</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-800">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-slate-500">folder_open</span>
+<span class="text-[11px] text-slate-400 font-medium">Core Intelligence</span>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+<button class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Tier Group: Personal -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-xs font-bold uppercase tracking-widest text-emerald-500">Personal Tier</h2>
+<span class="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-medium">8 Facts</span>
+</div>
+<!-- Card 2 (Green) -->
+<div class="glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-emerald-500">
+<div class="flex justify-between items-start">
+<p class="text-sm leading-relaxed text-slate-300">Prefers focused work blocks between 9:00 AM and 11:30 AM with no external interruptions.</p>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-emerald-400">94%</span>
+<span class="text-[10px] text-slate-500">Rel.</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-800">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-slate-500">person_search</span>
+<span class="text-[11px] text-slate-400 font-medium">Lifestyle Bio</span>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+<button class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Tier Group: Project -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-xs font-bold uppercase tracking-widest text-primary">Project Tier</h2>
+<span class="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">24 Facts</span>
+</div>
+<!-- Card 3 (Blue) -->
+<div class="glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-primary">
+<div class="flex justify-between items-start">
+<p class="text-sm leading-relaxed text-slate-300">System architecture requires GraphQL for client-server communication in the Nexus mobile app.</p>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-primary">89%</span>
+<span class="text-[10px] text-slate-500">Rel.</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-800">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-slate-500">deployed_code</span>
+<span class="text-[11px] text-slate-400 font-medium">Nexus Mobile SDK</span>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+<button class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Tier Group: Research -->
+<div class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="text-xs font-bold uppercase tracking-widest text-purple-500">Research Tier</h2>
+<span class="text-[10px] bg-purple-500/10 text-purple-500 px-2 py-0.5 rounded-full font-medium">15 Facts</span>
+</div>
+<!-- Card 4 (Purple) -->
+<div class="glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-purple-500">
+<div class="flex justify-between items-start">
+<p class="text-sm leading-relaxed text-slate-300">Transformer-based models exhibit a 12% increase in reasoning efficiency when applying chain-of-thought prompting.</p>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-purple-400">91%</span>
+<span class="text-[10px] text-slate-500">Rel.</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-800">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-xs text-slate-500">science</span>
+<span class="text-[11px] text-slate-400 font-medium">NLP Benchmarks</span>
+</div>
+<div class="flex gap-2">
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+<button class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-3">
+<div class="flex justify-around items-center">
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium">Dashboard</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">database</span>
+<span class="text-[10px] font-medium">Knowledge</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">folder</span>
+<span class="text-[10px] font-medium">Projects</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-medium">Settings</span>
+</a>
+</div>
+</nav>
+</body></html>

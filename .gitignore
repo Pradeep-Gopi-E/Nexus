@@ -30,7 +30,11 @@ MANIFEST
 venv/
 env/
 .env
-nexus/
+nexus/Scripts/
+nexus/Lib/
+nexus/Include/
+nexus/share/
+nexus/pyvenv.cfg
 
 # Database files
 *.db

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexus AI Knowledge Base Graph View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2b2bee",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#101022",
+                        "node-conv": "#94a3b8",
+                        "node-pers": "#22c55e",
+                        "node-proj": "#3b82f6",
+                        "node-rese": "#a855f7",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .grid-bg {
+            background-image: radial-gradient(circle at 1px 1px, rgba(43, 43, 238, 0.05) 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        .glass {
+            background: rgba(25, 25, 51, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .node-glow {
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 overflow-hidden">
+<div class="relative flex h-screen w-full flex-col bg-background-dark group/design-root">
+<!-- Header -->
+<div class="flex items-center bg-transparent p-4 pb-2 justify-between z-20">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full glass">
+<span class="material-symbols-outlined text-slate-100">menu</span>
+</div>
+<h2 class="text-slate-100 text-lg font-bold leading-tight tracking-tight flex-1 text-center">Nexus AI Graph</h2>
+<div class="flex size-10 items-center justify-center rounded-full glass">
+<span class="material-symbols-outlined text-slate-100">search</span>
+</div>
+</div>
+<!-- View Toggle -->
+<div class="flex px-6 py-4 z-20">
+<div class="flex h-12 flex-1 items-center justify-center rounded-full glass p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-full px-4 text-slate-400 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-sm font-semibold">
+<span class="truncate">List View</span>
+<input class="invisible w-0" name="view-toggle" type="radio" value="List"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-full px-4 text-slate-400 transition-all has-[:checked]:bg-primary has-[:checked]:text-white text-sm font-semibold">
+<span class="truncate">Mind Map</span>
+<input checked="" class="invisible w-0" name="view-toggle" type="radio" value="Mind Map"/>
+</label>
+</div>
+</div>
+<!-- Main Workspace: Graph View -->
+<div class="relative flex-1 w-full overflow-hidden grid-bg">
+<!-- SVG Paths for connections -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-40" fill="none" viewbox="0 0 400 800" xmlns="http://www.w3.org/2000/svg">
+<!-- Connections from Central Hub -->
+<path class="node-glow" d="M200 400 Q150 350 100 300" stroke="#3b82f6" stroke-dasharray="4 4" stroke-width="2"></path>
+<path class="node-glow" d="M200 400 Q250 350 300 300" stroke="#a855f7" stroke-dasharray="4 4" stroke-width="2"></path>
+<path class="node-glow" d="M200 400 Q150 450 80 500" stroke="#22c55e" stroke-dasharray="4 4" stroke-width="2"></path>
+<path class="node-glow" d="M200 400 Q250 450 320 520" stroke="#94a3b8" stroke-dasharray="4 4" stroke-width="2"></path>
+<!-- Connections from secondary hub -->
+<path d="M100 300 Q60 250 40 200" stroke="#3b82f6" stroke-width="1.5"></path>
+<path d="M100 300 Q140 250 160 200" stroke="#3b82f6" stroke-width="1.5"></path>
+</svg>
+<!-- Nodes Layer -->
+<div class="absolute inset-0 p-4">
+<!-- Central Hub Node (Source Document) -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 group">
+<div class="relative flex flex-col items-center">
+<div class="w-20 h-20 glass flex items-center justify-center rounded-xl rotate-45 border-2 border-white/40 shadow-xl shadow-primary/20">
+<span class="material-symbols-outlined text-white text-3xl -rotate-45">description</span>
+</div>
+<p class="mt-4 text-xs font-bold text-white bg-background-dark/80 px-2 py-1 rounded border border-white/10">API_Docs.pdf</p>
+</div>
+</div>
+<!-- Spoke Node: Project (Blue) -->
+<div class="absolute top-[30%] left-[25%] -translate-x-1/2 -translate-y-1/2">
+<div class="flex flex-col items-center gap-2">
+<div class="size-10 rounded-full bg-node-proj border-2 border-white/50 flex items-center justify-center text-white node-glow shadow-lg">
+<span class="material-symbols-outlined text-xl">account_tree</span>
+</div>
+<span class="text-[10px] font-medium text-slate-300">Endpoint Mapping</span>
+</div>
+</div>
+<!-- Spoke Node: Research (Purple) -->
+<div class="absolute top-[30%] left-[75%] -translate-x-1/2 -translate-y-1/2">
+<div class="flex flex-col items-center gap-2">
+<div class="size-10 rounded-full bg-node-rese border-2 border-white/50 flex items-center justify-center text-white node-glow shadow-lg">
+<span class="material-symbols-outlined text-xl">science</span>
+</div>
+<span class="text-[10px] font-medium text-slate-300">Auth Logic</span>
+</div>
+</div>
+<!-- Spoke Node: Personal (Green) -->
+<div class="absolute top-[65%] left-[20%] -translate-x-1/2 -translate-y-1/2">
+<div class="flex flex-col items-center gap-2">
+<div class="size-10 rounded-full bg-node-pers border-2 border-white/50 flex items-center justify-center text-white node-glow shadow-lg">
+<span class="material-symbols-outlined text-xl">person</span>
+</div>
+<span class="text-[10px] font-medium text-slate-300">Assigned: Dev</span>
+</div>
+</div>
+<!-- Spoke Node: Conversational (Gray) -->
+<div class="absolute top-[68%] left-[80%] -translate-x-1/2 -translate-y-1/2">
+<div class="flex flex-col items-center gap-2">
+<div class="size-10 rounded-full bg-node-conv border-2 border-white/50 flex items-center justify-center text-white node-glow shadow-lg">
+<span class="material-symbols-outlined text-xl">chat</span>
+</div>
+<span class="text-[10px] font-medium text-slate-300">Usage Query</span>
+</div>
+</div>
+<!-- Secondary Document Hub -->
+<div class="absolute top-[20%] left-[10%] -translate-x-1/2 -translate-y-1/2 opacity-60">
+<div class="w-14 h-14 glass flex items-center justify-center rounded-xl rotate-45 border border-white/20">
+<span class="material-symbols-outlined text-white text-xl -rotate-45">article</span>
+</div>
+</div>
+</div>
+<!-- Floating Controls Left -->
+<div class="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-30">
+<button class="flex size-11 items-center justify-center rounded-xl glass text-white hover:bg-primary/40 transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="flex size-11 items-center justify-center rounded-xl glass text-white hover:bg-primary/40 transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="mt-4 flex size-11 items-center justify-center rounded-xl glass text-white hover:bg-primary/40 transition-colors">
+<span class="material-symbols-outlined">near_me</span>
+</button>
+</div>
+<!-- Mini Map Bottom Right -->
+<div class="absolute right-4 bottom-4 w-28 h-20 rounded-lg glass border border-white/10 overflow-hidden z-30 pointer-events-none">
+<div class="absolute inset-0 bg-background-dark/40 opacity-50"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-4 border border-primary bg-primary/20 rounded-sm"></div>
+<div class="absolute top-2 left-4 size-1 rounded-full bg-white/40"></div>
+<div class="absolute top-6 left-16 size-1 rounded-full bg-white/40"></div>
+<div class="absolute bottom-4 left-6 size-1 rounded-full bg-white/40"></div>
+</div>
+<!-- Legend Overlay -->
+<div class="absolute left-4 bottom-4 flex flex-col gap-1.5 z-30">
+<div class="flex items-center gap-2 px-2 py-1 rounded glass text-[9px] uppercase tracking-wider font-bold text-slate-300">
+<div class="size-2 rounded-full bg-node-conv"></div> Conversational
+                </div>
+<div class="flex items-center gap-2 px-2 py-1 rounded glass text-[9px] uppercase tracking-wider font-bold text-slate-300">
+<div class="size-2 rounded-full bg-node-pers"></div> Personal
+                </div>
+<div class="flex items-center gap-2 px-2 py-1 rounded glass text-[9px] uppercase tracking-wider font-bold text-slate-300">
+<div class="size-2 rounded-full bg-node-proj"></div> Project
+                </div>
+<div class="flex items-center gap-2 px-2 py-1 rounded glass text-[9px] uppercase tracking-wider font-bold text-slate-300">
+<div class="size-2 rounded-full bg-node-rese"></div> Research
+                </div>
+</div>
+</div>
+<!-- Floating Action: Focus Selected -->
+<div class="absolute bottom-24 left-1/2 -translate-x-1/2 z-40 transition-all">
+<button class="px-6 h-12 glass border-primary/40 rounded-full flex items-center gap-2 text-primary font-bold shadow-2xl shadow-primary/20 ring-1 ring-primary/20">
+<span class="material-symbols-outlined">filter_center_focus</span>
+                Focus Selection
+             </button>
+</div>
+<!-- Bottom Navigation -->
+<div class="flex gap-2 border-t border-slate-800 bg-background-dark/80 backdrop-blur-md px-4 pb-8 pt-2 z-50">
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+<p class="text-[10px] font-medium leading-normal tracking-wide">Dashboard</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">hub</span>
+<p class="text-[10px] font-medium leading-normal tracking-wide">Knowledge</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<p class="text-[10px] font-medium leading-normal tracking-wide">Analytics</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center gap-1 text-slate-500" href="#">
+<span class="material-symbols-outlined">settings</span>
+<p class="text-[10px] font-medium leading-normal tracking-wide">Settings</p>
+</a>
+</div>
+</div>
+</body></html>

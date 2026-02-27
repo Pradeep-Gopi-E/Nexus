@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexus AI - Advanced Reasoning Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#606bd2",
+                        "primary-hover": "#4e59b5",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#0e0f14", /* Deeper charcoal */
+                        "surface-dark": "#16171d",
+                        "surface-lighter": "#1f212b",
+                        "border-dark": "#2a2c35",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "full": "9999px" },
+                    boxShadow: {
+                        "glow": "0 0 20px rgba(96, 107, 210, 0.15)",
+                        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for sleek look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2c35;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #606bd2;
+        }
+        .glass-panel {
+            background: rgba(22, 23, 29, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display antialiased min-h-screen flex flex-col overflow-hidden">
+<!-- Top Navigation -->
+<header class="h-16 border-b border-border-dark dark:bg-surface-dark flex items-center justify-between px-6 shrink-0 z-20">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3 text-white group cursor-pointer">
+<div class="size-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-200">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+</div>
+<h2 class="text-white text-lg font-bold tracking-tight">Nexus AI</h2>
+</div>
+<div class="h-6 w-px bg-border-dark mx-2 hidden md:block"></div>
+<nav class="hidden md:flex items-center gap-1">
+<a class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors" href="#">Dashboard</a>
+<a class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-white/5" href="#">Reasoning Engine</a>
+<a class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-white/5 transition-colors" href="#">Knowledge Base</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex items-center relative group">
+<div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">search</span>
+</div>
+<input class="bg-surface-lighter border border-transparent focus:border-primary/50 text-sm rounded-full pl-9 pr-4 py-1.5 w-64 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all shadow-sm" placeholder="Search knowledge..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="size-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/5 transition-colors relative">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-surface-dark"></span>
+</button>
+<div class="size-9 rounded-full bg-gradient-to-br from-primary to-purple-600 p-[1px] cursor-pointer" data-alt="User Avatar Profile">
+<img alt="User" class="rounded-full h-full w-full object-cover border-2 border-surface-dark" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLFQBI2U4pjIKIieuWHhj7Qkowyhkamtd9zwpkVzLaJx4qGFc8PHjPMuM5LRO6x73AVH-XFZEZq5k47AXGF33bw4dRB4LKkJH4E3IdamPZ9AqQC4QT6yDD43aUYjjerBim34I3N845XW4-nayNtQnyYhs5MsALRV-FyL44b7KnjFV996SXGswcnNxNMz9p_voN-Uzq0Nhvy45Xj7zmrn1-7um5dZaeSX4G1dQd6ICQyCzk_brUcokQitLfVJ0iXlw8sr08Hvbgc2Q"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 flex overflow-hidden relative">
+<!-- Left Sidebar (Collapsible/Icons) -->
+<aside class="w-16 flex flex-col items-center py-6 border-r border-border-dark bg-surface-dark hidden sm:flex shrink-0 z-10">
+<div class="flex flex-col gap-4 w-full px-2">
+<button class="size-10 mx-auto rounded-xl bg-primary/10 text-primary flex items-center justify-center shadow-glow transition-all hover:scale-105">
+<span class="material-symbols-outlined text-[20px]">add</span>
+</button>
+<div class="h-px w-8 bg-border-dark mx-auto my-2"></div>
+<button class="size-10 mx-auto rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors tooltip-trigger" title="History">
+<span class="material-symbols-outlined text-[20px]">history</span>
+</button>
+<button class="size-10 mx-auto rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors" title="Projects">
+<span class="material-symbols-outlined text-[20px]">folder_open</span>
+</button>
+<button class="size-10 mx-auto rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors" title="Favorites">
+<span class="material-symbols-outlined text-[20px]">star</span>
+</button>
+</div>
+<div class="mt-auto flex flex-col gap-4">
+<button class="size-10 mx-auto rounded-lg text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors" title="Settings">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</div>
+</aside>
+<!-- Chat Area -->
+<section class="flex-1 flex flex-col relative min-w-0">
+<!-- Header for Session -->
+<div class="absolute top-0 left-0 right-0 p-6 z-10 bg-gradient-to-b from-background-dark via-background-dark/80 to-transparent pointer-events-none">
+<div class="flex items-center justify-between pointer-events-auto">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-primary/20 text-primary border border-primary/20">Active Session</span>
+<span class="text-slate-500 text-xs">#4092-AX</span>
+</div>
+<h1 class="text-2xl font-bold text-white tracking-tight">Alpha Protocol Analysis</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-surface-lighter border border-border-dark rounded-lg hover:bg-surface-lighter/80 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">ios_share</span>
+                            Export
+                         </button>
+<button class="px-3 py-1.5 text-xs font-medium text-slate-300 bg-surface-lighter border border-border-dark rounded-lg hover:bg-surface-lighter/80 transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">delete</span>
+                            Clear
+                         </button>
+</div>
+</div>
+</div>
+<!-- Messages Scroll Area -->
+<div class="flex-1 overflow-y-auto pt-32 pb-40 px-6 md:px-20 lg:px-40 scroll-smooth">
+<!-- System Message -->
+<div class="flex gap-4 mb-8 group animate-fade-in-up">
+<div class="size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1">
+<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>
+</div>
+<div class="flex-1 max-w-3xl">
+<div class="flex items-baseline gap-2 mb-1">
+<span class="text-sm font-semibold text-white">Nexus AI</span>
+<span class="text-xs text-slate-500">10:42 AM</span>
+</div>
+<div class="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed">
+<p>I have analyzed the provided documents. The cognitive rank suggests a <span class="text-white font-medium">Tier 1 priority</span> for the encrypted data streams found in sector 7.</p>
+<p class="mt-2">Based on the metadata, there are three anomalies detected:</p>
+<ul class="list-disc pl-4 mt-2 space-y-1 text-slate-400">
+<li>Pattern mismatch in header sequence <code class="bg-surface-lighter px-1 py-0.5 rounded text-xs border border-white/5">0x4F</code></li>
+<li>Timestamp irregularity in stream B</li>
+<li>Unexpected latency in handshake protocol</li>
+</ul>
+<div class="mt-4 flex gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
+<span class="size-1.5 rounded-full bg-emerald-400"></span> Verified
+                                </span>
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+<span class="material-symbols-outlined text-[12px]">lock</span> Encrypted
+                                </span>
+</div>
+</div>
+</div>
+</div>
+<!-- User Message -->
+<div class="flex flex-row-reverse gap-4 mb-8 group animate-fade-in-up" style="animation-delay: 100ms;">
+<div class="size-8 rounded-lg bg-surface-lighter border border-border-dark flex items-center justify-center shrink-0 mt-1 overflow-hidden" data-alt="User avatar">
+<img class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDapTl5Mu9rfS6ZyedecCz37iR7R0THo-hZiVyu4a0FvpTyPRwZOZYgHZ34gvBJUhk7TQvQZ3QzuOjiijkDZa6Y2RZskteiJIZAqha5ZekvjW-uXi60ON99ZiR37Zn8GGQhXqJFy7pLe_O3kZfbWziAKmuAPdf3E7CUUxYtQ4BUkpZqIcTWYQE2GS0NplJZk1K7HLC0hlXl7SlhRiY7CDsDXx0918_ZXYzfan6VPeI2_8km3xMG5lq2LZnVYbfRQfxPfg2-0QOIC-E"/>
+</div>
+<div class="flex-1 max-w-3xl flex flex-col items-end">
+<div class="flex items-baseline gap-2 mb-1 flex-row-reverse">
+<span class="text-sm font-semibold text-white">You</span>
+<span class="text-xs text-slate-500">10:43 AM</span>
+</div>
+<div class="px-5 py-3 rounded-2xl rounded-tr-sm bg-surface-lighter border border-border-dark text-slate-200 text-sm leading-relaxed shadow-sm">
+                            Yes, proceed with decryption. Cross-reference with the Core Memory bank for similar patterns observed during the 2023 Q4 audit.
+                        </div>
+</div>
+</div>
+<!-- System Response (Streaming) -->
+<div class="flex gap-4 mb-8 group animate-fade-in-up" style="animation-delay: 200ms;">
+<div class="size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1">
+<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>
+</div>
+<div class="flex-1 max-w-3xl">
+<div class="flex items-baseline gap-2 mb-1">
+<span class="text-sm font-semibold text-white">Nexus AI</span>
+<span class="text-xs text-slate-500">Thinking...</span>
+</div>
+<div class="bg-surface-lighter/50 border border-border-dark rounded-xl p-4 mb-3 max-w-md animate-pulse">
+<div class="flex items-center gap-3 mb-2">
+<div class="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+<span class="text-xs font-medium text-primary">Decryption in progress...</span>
+</div>
+<div class="h-1.5 w-full bg-surface-dark rounded-full overflow-hidden">
+<div class="h-full bg-primary w-2/3 rounded-full"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+<span>Sector 7</span>
+<span>67%</span>
+</div>
+</div>
+<div class="text-slate-300 text-sm">
+<p>Acknowledged. Initiating decryption sequence on Sector 7 data streams...</p>
+<p class="mt-2"><span class="inline-block w-1.5 h-4 bg-primary align-middle mr-1 animate-pulse"></span></p>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Dock -->
+<div class="absolute bottom-6 left-0 right-0 px-4 md:px-20 lg:px-40 flex justify-center z-20">
+<div class="w-full max-w-3xl glass-panel rounded-2xl p-2 shadow-glass relative group ring-1 ring-white/10 focus-within:ring-primary/50 transition-all">
+<textarea class="w-full bg-transparent border-0 text-slate-200 placeholder-slate-500 focus:ring-0 resize-none py-3 px-4 max-h-32 text-sm leading-6 scrollbar-hide" placeholder="Ask Nexus anything or type '/' for commands..." rows="1"></textarea>
+<div class="flex justify-between items-center px-2 pb-1 pt-1">
+<div class="flex items-center gap-1">
+<button class="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+</button>
+<button class="p-2 text-slate-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+</div>
+<button class="bg-primary hover:bg-primary-hover text-white p-2 rounded-lg transition-all shadow-lg shadow-primary/20 flex items-center justify-center group-focus-within:scale-100 scale-95 opacity-50 group-focus-within:opacity-100">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</div>
+</div>
+<div class="absolute -bottom-6 text-[10px] text-slate-600 font-medium py-2">
+                    Nexus AI can make mistakes. Verify important information.
+                </div>
+</div>
+</section>
+<!-- Right Sidebar (Glassmorphic) -->
+<aside class="w-80 border-l border-border-dark bg-surface-dark/50 backdrop-blur-md hidden xl:flex flex-col shrink-0 z-10">
+<div class="p-5 border-b border-border-dark flex justify-between items-center">
+<h3 class="text-sm font-semibold text-white">Context &amp; Memory</h3>
+<button class="text-slate-500 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">dock_to_right</span>
+</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5 space-y-6">
+<!-- Active Documents -->
+<div>
+<div class="flex items-center justify-between mb-3">
+<h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Sources</h4>
+<span class="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded border border-primary/20">3 Live</span>
+</div>
+<div class="space-y-2">
+<div class="p-3 bg-surface-lighter rounded-lg border border-border-dark hover:border-primary/40 transition-colors group cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="bg-red-500/10 p-1.5 rounded text-red-400">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-slate-200 truncate group-hover:text-primary transition-colors">Sector_7_Analysis.pdf</p>
+<p class="text-xs text-slate-500 mt-0.5">2.4 MB • Uploaded just now</p>
+</div>
+</div>
+</div>
+<div class="p-3 bg-surface-lighter rounded-lg border border-border-dark hover:border-primary/40 transition-colors group cursor-pointer">
+<div class="flex items-start gap-3">
+<div class="bg-blue-500/10 p-1.5 rounded text-blue-400">
+<span class="material-symbols-outlined text-[18px]">dataset</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-medium text-slate-200 truncate group-hover:text-primary transition-colors">Encrypted_Stream_B</p>
+<p class="text-xs text-slate-500 mt-0.5">Live Feed • <span class="text-green-400">Active</span></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Core Memory -->
+<div>
+<div class="flex items-center justify-between mb-3">
+<h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Core Memory</h4>
+<button class="text-primary text-xs hover:underline">View All</button>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-lighter/50 rounded-lg p-3 border border-border-dark relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+<div class="flex justify-between items-start mb-2 pl-2">
+<span class="text-xs font-mono text-purple-400">MEM-8921</span>
+<span class="px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-slate-400 border border-white/5">Tier 1</span>
+</div>
+<p class="text-sm text-slate-300 pl-2 line-clamp-2">Alpha Protocol defines strict encryption standards for Sector 7 communications.</p>
+<div class="mt-2 pl-2 flex items-center gap-2 text-[10px] text-slate-500">
+<span class="material-symbols-outlined text-[12px]">psychology</span>
+                                98% Relevance
+                            </div>
+</div>
+<div class="bg-surface-lighter/50 rounded-lg p-3 border border-border-dark relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-orange-500"></div>
+<div class="flex justify-between items-start mb-2 pl-2">
+<span class="text-xs font-mono text-orange-400">MEM-1044</span>
+<span class="px-2 py-0.5 rounded-full bg-white/5 text-[10px] text-slate-400 border border-white/5">Tier 2</span>
+</div>
+<p class="text-sm text-slate-300 pl-2 line-clamp-2">Audit 2023 Q4 revealed latency spikes in handshake protocols similar to Stream B.</p>
+<div class="mt-2 pl-2 flex items-center gap-2 text-[10px] text-slate-500">
+<span class="material-symbols-outlined text-[12px]">psychology</span>
+                                92% Relevance
+                            </div>
+</div>
+</div>
+</div>
+<!-- System Stats -->
+<div>
+<h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">System Status</h4>
+<div class="grid grid-cols-2 gap-3">
+<div class="bg-surface-lighter p-3 rounded-lg border border-border-dark text-center">
+<div class="text-[10px] text-slate-500 mb-1">Reasoning</div>
+<div class="text-lg font-bold text-primary">94%</div>
+</div>
+<div class="bg-surface-lighter p-3 rounded-lg border border-border-dark text-center">
+<div class="text-[10px] text-slate-500 mb-1">Latency</div>
+<div class="text-lg font-bold text-emerald-400">12ms</div>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 border-t border-border-dark bg-surface-dark/80">
+<button class="w-full py-2 rounded-lg border border-border-dark bg-surface-lighter text-slate-300 text-sm font-medium hover:bg-white/5 hover:text-white transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+                    Adjust Parameters
+                </button>
+</div>
+</aside>
+</main>
+</body></html>
