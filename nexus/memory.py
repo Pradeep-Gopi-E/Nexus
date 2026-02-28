@@ -7,7 +7,11 @@ from nexus.models import Fact, Edge, UserPreference
 class MemoryStore:
     """Persistent state mechanism for Nexus."""
     
-    def __init__(self, db_path: str = "data/nexus_memory.db"):
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            db_path = os.path.join(project_root, "data", "nexus_memory.db")
+            
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         # Using check_same_thread=False allows sharing the connection across MCP request threads safely
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
@@ -221,6 +225,12 @@ class MemoryStore:
                 "INSERT OR REPLACE INTO preferences (key, value) VALUES (?, ?)",
                 (key, value)
             )
+
+    def get_preference(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """Retrieves a user preference."""
+        cursor = self.conn.execute("SELECT value FROM preferences WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        return row['value'] if row else default
 
     def add_message(self, project_id: str, role: str, content: str):
         """Records session history."""

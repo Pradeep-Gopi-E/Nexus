@@ -103,10 +103,10 @@ async def upload_file(project_id: str = Form(...), file: UploadFile = File(...))
     if not file.filename.endswith((".pdf", ".md", ".xlsx", ".csv", ".doc", ".docx", ".ppt", ".pptx")):
         raise HTTPException(status_code=400, detail="Unsupported file format.")
     
-    # Save temp file
-    temp_path = os.path.join(project_root, "data", "temp_uploads")
-    os.makedirs(temp_path, exist_ok=True)
-    file_path = os.path.join(temp_path, file.filename)
+    # Save file permanently into the specific project directory so the Agent can access it later for multimodal tools
+    project_doc_path = os.path.join(project_root, "data", project_id, "documents")
+    os.makedirs(project_doc_path, exist_ok=True)
+    file_path = os.path.join(project_doc_path, file.filename)
     
     with open(file_path, "wb") as f:
         f.write(await file.read())
@@ -114,8 +114,7 @@ async def upload_file(project_id: str = Form(...), file: UploadFile = File(...))
     try:
         # Ingest to ChromaDB under the specific project
         chunks = knowledge.ingest_document(project_id, file_path)
-        # Clean up
-        os.remove(file_path)
+        # Note: We NO LONGER delete the file. It persists so the Agent can read page images on-demand.
         return {"message": f"Successfully ingested {file.filename} into {chunks} logical chunks."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -16,5 +16,5 @@ python-multipart>=0.0.20
 langchain-experimental>=0.0.60
 langchain-community>=0.2.0
 tavily-python>=0.5.0
-markitdown>=0.0.1
+markitdown[docx]>=0.0.1
 pandas>=2.0.0

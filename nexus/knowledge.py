@@ -8,7 +8,11 @@ from markitdown import MarkItDown
 class KnowledgeBase:
     """Vector Database and Document Ingestion Pipeline."""
     
-    def __init__(self, persist_dir: str = "data/chroma_db"):
+    def __init__(self, persist_dir: str = None):
+        if persist_dir is None:
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            persist_dir = os.path.join(project_root, "data", "chroma_db")
+            
         os.makedirs(persist_dir, exist_ok=True)
         # Using ChromaDB for robust local persistence of embeddings
         self.client = chromadb.PersistentClient(path=persist_dir)
@@ -29,13 +33,20 @@ class KnowledgeBase:
 
         if filepath.lower().endswith('.pdf'):
             doc = fitz.open(filepath)
-            # Extracted by page; ideally mapped to a RecursiveCharacterTextSplitter for precision
+            
             for page_num in range(len(doc)):
-                text = doc[page_num].get_text("text")
-                if text.strip():
-                    chunks.append(text)
-                    metadatas.append({"filename": filename, "page": page_num, "project_id": project_id})
-                    ids.append(f"{project_id}_{filename}_page_{page_num}")
+                try:
+                    page = doc[page_num]
+                    
+                    # 1. Extract Text
+                    text = page.get_text("text")
+                    if text.strip():
+                        chunks.append(text)
+                        metadatas.append({"filename": filename, "page": page_num, "project_id": project_id})
+                        ids.append(f"{project_id}_{filename}_page_{page_num}_text")
+                        
+                except Exception as e:
+                    print(f"Skipping corrupted data on page {page_num}: {e}")
         elif filepath.lower().endswith('.md'):
             with open(filepath, 'r', encoding='utf-8') as f:
                 text = f.read()

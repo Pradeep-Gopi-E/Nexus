@@ -2,21 +2,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- State ---
     const urlParams = new URLSearchParams(window.location.search);
     const sessionNameParam = urlParams.get('session');
+    const projectIdParam = urlParams.get('project_id'); // Support opening an existing project
 
-    let currentProjectId;
-    let currentProjectCustomName;
+    let currentProjectId = sessionStorage.getItem('nexus_current_project_id');
+    let currentProjectCustomName = sessionStorage.getItem('nexus_current_project_name');
 
-    // Always start a fresh session on load/reload
+    // If there's a URL parameter to force a new session name (e.g. from clicking New Work)
     if (sessionNameParam) {
         currentProjectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         currentProjectCustomName = sessionNameParam;
         window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
+    }
+    // If there's a URL parameter requesting a specific existing project ID
+    else if (projectIdParam) {
+        currentProjectId = projectIdParam;
+        currentProjectCustomName = urlParams.get('project_name') || "Project Workspace";
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    // If no existing session in this tab, create one
+    else if (!currentProjectId) {
         currentProjectId = `proj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         currentProjectCustomName = `Session ${new Date().toLocaleTimeString()}`;
     }
-    localStorage.setItem('nexus_current_project_id', currentProjectId);
-    localStorage.setItem('nexus_current_project_name', currentProjectCustomName);
+
+    sessionStorage.setItem('nexus_current_project_id', currentProjectId);
+    sessionStorage.setItem('nexus_current_project_name', currentProjectCustomName);
 
     // --- Elements ---
     const chatInput = document.getElementById('chat-input');
@@ -131,17 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
         headerNode.innerHTML = `<span class="text-sm font-semibold text-white">Nexus AI</span><span class="text-xs text-slate-500">Thinking...</span>`;
 
         const bubble = document.createElement('div');
-        bubble.className = 'bg-surface-lighter/50 border border-border-dark rounded-xl p-4 mb-3 max-w-md animate-pulse';
+        bubble.className = 'bg-surface-lighter/50 border border-border-dark rounded-xl p-4 mb-3 max-w-[200px] animate-pulse';
         bubble.innerHTML = `
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex items-center gap-3">
                 <div class="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <span class="text-xs font-medium text-primary">Synthesizing...</span>
-            </div>
-            <div class="h-1.5 w-full bg-surface-dark rounded-full overflow-hidden">
-                <div class="h-full bg-primary w-2/3 rounded-full"></div>
-            </div>
-            <div class="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
-                <span>Vector Graph</span><span>Running...</span>
+                <span class="text-xs font-medium text-slate-300">Synthesizing...</span>
             </div>
         `;
 
@@ -284,6 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             projectList.innerHTML = '';
 
+            // Ensure the active project has its correct name from the database (solves caching/URL missing issues)
+            if (data.projects) {
+                const activeProj = data.projects.find(p => p.id === currentProjectId);
+                if (activeProj && activeProj.name) {
+                    currentProjectCustomName = activeProj.name;
+                    sessionStorage.setItem('nexus_current_project_name', currentProjectCustomName);
+                    if (currentProjectName) currentProjectName.textContent = currentProjectCustomName;
+                    const kbLabel = document.getElementById('kb-project-label');
+                    if (kbLabel) kbLabel.textContent = currentProjectCustomName;
+                }
+            }
+
             if (!data.projects || data.projects.length === 0) {
                 projectList.innerHTML = '<li class="memory-item" style="justify-content:center; color: var(--text-muted);">No history</li>';
                 return;
@@ -310,19 +326,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 li.addEventListener('click', () => {
-                    currentProjectId = pid;
-                    currentProjectCustomName = pName;
-                    localStorage.setItem('nexus_current_project_id', currentProjectId);
-                    localStorage.setItem('nexus_current_project_name', currentProjectCustomName);
-                    messagesContainer.innerHTML = '';
-                    appendMessage(`Loaded Project Workspace: ${pName}`, false);
-                    loadProjects();
-                    loadHistory();
-                    loadMemory();
-                    loadDocuments();
-                    currentProjectName.textContent = pName;
-                    const kbLabel = document.getElementById('kb-project-label');
-                    if (kbLabel) kbLabel.textContent = pName;
+                    // Open the past project directly in a NEW window/tab so we don't destroy the current active session
+                    window.open(window.location.pathname + '?project_id=' + encodeURIComponent(pid) + '&project_name=' + encodeURIComponent(pName), '_blank');
                     pastWorkContainer.style.display = 'none'; // Auto-hide list on selection
                 });
 
@@ -465,14 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function handleUpload(file) {
-        if (!file.name.endsWith('.pdf') && !file.name.endsWith('.md')) {
+        const allowedExtensions = ['.pdf', '.md', '.docx', '.doc', '.pptx', '.ppt', '.xlsx', '.csv'];
+        const isValid = allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+        if (!isValid) {
             uploadStatus.className = 'status-msg error';
-            uploadStatus.textContent = 'Only PDF and MD files allowed.';
+            uploadStatus.textContent = 'Only Documents, Spreadsheets, and MD files allowed.';
             return;
         }
 
         uploadStatus.className = 'status-msg';
-        uploadStatus.textContent = `Uploading ${file.name}...`;
+        uploadStatus.textContent = `Analyzing and Vectorizing ${file.name}... (Extracting images may take a moment)`;
 
         const formData = new FormData();
         formData.append('project_id', currentProjectId);
@@ -646,6 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let kbFactsData = []; // Store globally for client-side search filtering
     let kbEdgesData = []; // Store graph edges for D3 render
     let kbActiveTierFilter = 'All'; // Track active tier filter for KB
+    let kbActiveSort = 'tier'; // Track active sort option for KB list
 
     // --- Knowledge Base Logic ---
     window.loadKnowledgeBase = async function () {
@@ -697,19 +706,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 2. Group by tier
-        const grouped = {
-            'Research': [],
-            'Project': [],
-            'Personal': [],
-            'Conversational': []
-        };
+        // 2. Sort the array natively in JS
+        if (kbActiveSort === 'chronological') {
+            filteredFacts.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        } else if (kbActiveSort === 'activation') {
+            filteredFacts.sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+        }
 
-        filteredFacts.forEach(fact => {
-            const tier = fact.tier || 'Conversational';
-            if (!grouped[tier]) grouped[tier] = [];
-            grouped[tier].push(fact);
-        });
+        // 3. Group by tier (or single list if sorted)
+        let grouped = {};
+
+        if (kbActiveSort === 'tier') {
+            grouped = { 'Research': [], 'Project': [], 'Personal': [], 'Conversational': [] };
+            filteredFacts.forEach(fact => {
+                const tier = fact.tier || 'Conversational';
+                if (!grouped[tier]) grouped[tier] = [];
+                grouped[tier].push(fact);
+            });
+        } else if (kbActiveSort === 'chronological') {
+            grouped = { 'Timeline': filteredFacts };
+        } else if (kbActiveSort === 'activation') {
+            grouped = { 'Relevance': filteredFacts };
+        }
 
         kbContainer.innerHTML = ''; // Clear
 
@@ -717,7 +735,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'Conversational': { title: 'Conversational Tier', color: 'slate', accent: 'slate-400', icon: 'folder_open' },
             'Personal': { title: 'Personal Tier', color: 'emerald', accent: 'emerald-500', icon: 'person_search' },
             'Project': { title: 'Project Tier', color: 'primary', accent: 'primary', icon: 'deployed_code' },
-            'Research': { title: 'Research Tier', color: 'purple', accent: 'purple-500', icon: 'science' }
+            'Research': { title: 'Research Tier', color: 'purple', accent: 'purple-500', icon: 'science' },
+            'Timeline': { title: 'Timeline - Newest First', color: 'sky', accent: 'sky-400', icon: 'schedule' },
+            'Relevance': { title: 'Relevance - Ranked', color: 'amber', accent: 'amber-400', icon: 'star' }
         };
 
         for (const [tier, facts] of Object.entries(grouped)) {
@@ -725,18 +745,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const c = tierConfigs[tier] || tierConfigs['Conversational'];
             const groupDiv = document.createElement('div');
-            groupDiv.className = 'space-y-3';
+            groupDiv.className = 'space-y-2';
 
             groupDiv.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xs font-bold uppercase tracking-widest text-${c.color}-500">${c.title}</h2>
-                        <span class="text-[10px] bg-${c.color}-500/10 text-${c.color}-500 px-2 py-0.5 rounded-full font-medium">${facts.length} Facts</span>
+                    <div class="flex items-center justify-between pt-1">
+                        <h2 class="text-[10px] font-bold uppercase tracking-widest text-${c.color}-500">${c.title}</h2>
+                        <span class="text-[9px] bg-${c.color}-500/10 text-${c.color}-500 px-2 py-0.5 rounded-full font-medium">${facts.length} Facts</span>
                     </div>
                 `;
 
             facts.forEach(fact => {
                 const card = document.createElement('div');
-                card.className = `glass-panel rounded-xl p-4 space-y-3 border-l-4 border-l-${c.accent}`;
+                card.className = `glass-panel rounded-lg py-2.5 px-3 border-l-[3px] border-l-${c.accent}`;
 
                 const score = Math.round((fact.relevance_score || 0.5) * 100);
                 const projName = fact.project_name || 'Unknown Project';
@@ -749,27 +769,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (fact.source === 'user') sourceIcon = 'person';
                 else if (fact.source === 'image') sourceIcon = 'image';
                 else if (fact.source && !sourceMap[fact.source]) sourceIcon = 'description';
-                const sourceName = displaySource ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-${c.color}-500/10 text-${c.accent} text-[10px] ml-2 border border-${c.color}-500/20"><span class="material-symbols-outlined text-[11px]">${sourceIcon}</span>${escapeHtml(displaySource)}</span>` : '';
+                const sourceName = displaySource ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-${c.color}-500/10 text-${c.accent} text-[9px] ml-2 border border-${c.color}-500/20"><span class="material-symbols-outlined text-[10px]">${sourceIcon}</span>${escapeHtml(displaySource)}</span>` : '';
 
                 card.innerHTML = `
-                        <div class="flex justify-between items-start gap-4">
-                            <p class="text-sm leading-relaxed text-slate-300 flex-1">${escapeHtml(fact.content)}${sourceName}</p>
-                            <div class="flex flex-col items-end shrink-0">
-                                <span class="text-xs font-bold text-${c.accent}">${score}%</span>
-                                <span class="text-[10px] text-slate-500">Rel.</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-                            <div class="flex items-center gap-2">
-                                <span class="material-symbols-outlined text-xs text-slate-500">${c.icon}</span>
-                                <span class="text-[11px] text-slate-400 font-medium truncate max-w-[150px]">${escapeHtml(projName)}</span>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="editKbFact('${fact.id}', '${escapeHtml(fact.content).replace(/'/g, "\\'")}', '${fact.tier}')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors">
-                                    <span class="material-symbols-outlined text-sm">edit</span>
+                        <div class="flex justify-between items-start gap-3">
+                            <p class="text-[13px] leading-snug text-slate-200 flex-1">${escapeHtml(fact.content)}${sourceName}</p>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <span class="text-[11px] font-bold text-${c.accent} mr-2">${score}% <span class="text-[9px] text-slate-500 font-normal">Rel.</span></span>
+                                <button onclick="editKbFact(this.dataset.id, this.dataset.content, this.dataset.tier)" data-id="${escapeHtml(fact.id)}" data-content="${escapeHtml(fact.content)}" data-tier="${escapeHtml(fact.tier || 'Conversational')}" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[14px]">edit</span>
                                 </button>
-                                <button onclick="deleteKbFact('${fact.id}')" class="p-1.5 rounded-lg hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors">
-                                    <span class="material-symbols-outlined text-sm">delete</span>
+                                <button onclick="deleteKbFact(this.dataset.id)" data-id="${escapeHtml(fact.id)}" class="p-1 rounded hover:bg-red-900/20 text-slate-400 hover:text-red-400 transition-colors flex items-center justify-center">
+                                    <span class="material-symbols-outlined text-[14px]">delete</span>
                                 </button>
                             </div>
                         </div>
@@ -781,38 +792,93 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.deleteKbFact = async function (id) {
-        if (confirm('Delete this fact unconditionally?')) {
-            try {
-                await fetch(`/api/memory/${id}`, { method: 'DELETE' });
-                await window.loadKnowledgeBase();
-                if (currentKbViewMode === 'map') renderMindMap();
-                loadMemory(); // Refresh sidebar too if open
-            } catch (e) {
-                console.error(e);
-            }
-        }
+    // --- Modals Logic for Editing & Deleting Facts ---
+
+    window.closeDeleteKbModal = function () {
+        const modal = document.getElementById('delete-kb-modal');
+        modal.style.opacity = '0';
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
     };
 
-    window.editKbFact = async function (id, currentContent, currentTier) {
-        const newContent = prompt("Edit Fact Content:", currentContent);
-        if (newContent === null) return;
+    window.deleteKbFact = function (id) {
+        const modal = document.getElementById('delete-kb-modal');
+        document.getElementById('delete-kb-id').value = id;
+        modal.style.display = 'flex';
+        // Trigger reflow
+        void modal.offsetWidth;
+        modal.style.opacity = '1';
+    };
 
-        const newTier = prompt("Edit Tier (Conversational, Personal, Project, Research):", currentTier);
-        if (newTier === null) return;
+    document.getElementById('confirm-kb-delete-btn').addEventListener('click', async () => {
+        const id = document.getElementById('delete-kb-id').value;
+        closeDeleteKbModal();
+
+        // 1. Optimistic UI: Instantly remove from local memory
+        globalKnowledgeData = globalKnowledgeData.filter(f => f.id !== id);
+        renderKnowledgeBase();
+        if (currentKbViewMode === 'map') renderMindMap();
 
         try {
+            // 2. Background Network Request
+            await fetch(`/api/memory/${id}`, { method: 'DELETE' });
+            loadMemory(); // Refresh sidebar quietly
+        } catch (e) {
+            console.error(e);
+            // On failure, reload from server to revert optimistic update
+            window.loadKnowledgeBase();
+        }
+    });
+
+    window.closeEditKbModal = function () {
+        const modal = document.getElementById('edit-kb-modal');
+        modal.style.opacity = '0';
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
+    };
+
+    window.editKbFact = function (id, currentContent, currentTier) {
+        document.getElementById('edit-kb-id').textContent = id;
+        document.getElementById('edit-kb-content').value = currentContent;
+        document.getElementById('edit-kb-tier').value = currentTier;
+
+        const modal = document.getElementById('edit-kb-modal');
+        modal.style.display = 'flex';
+        // Trigger reflow
+        void modal.offsetWidth;
+        modal.style.opacity = '1';
+    };
+
+    document.getElementById('save-kb-edit-btn').addEventListener('click', async () => {
+        const id = document.getElementById('edit-kb-id').textContent;
+        const newContent = document.getElementById('edit-kb-content').value;
+        const newTier = document.getElementById('edit-kb-tier').value;
+
+        if (!newContent.trim()) return;
+
+        closeEditKbModal();
+
+        // 1. Optimistic UI: Instantly update local memory
+        const factIndex = globalKnowledgeData.findIndex(f => f.id === id);
+        if (factIndex > -1) {
+            globalKnowledgeData[factIndex].content = newContent;
+            globalKnowledgeData[factIndex].tier = newTier;
+            renderKnowledgeBase();
+            if (currentKbViewMode === 'map') renderMindMap();
+        }
+
+        try {
+            // 2. Background Network Request
             await fetch(`/api/memory/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: newContent, tier: newTier })
             });
-            window.loadKnowledgeBase();
             loadMemory();
         } catch (e) {
             console.error(e);
+            // On failure, revert
+            window.loadKnowledgeBase();
         }
-    };
+    });
 
     // Simple HTML escape
     function escapeHtml(unsafe) {
@@ -846,6 +912,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         renderKnowledgeBase();
         if (currentKbViewMode === 'map') renderMindMap();
+    };
+
+    // --- KB Sort Logic ---
+    window.setKbSort = function (sortMethod) {
+        kbActiveSort = sortMethod;
+        renderKnowledgeBase();
     };
 
 
@@ -896,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
             source: edge.source_node_id,
             target: edge.target_node_id,
             type: edge.relationship_type,
-            weight: edge.weight
+            weight: parseFloat(edge.weight) || 1.0
         }));
 
         // Render D3 SVG
@@ -923,13 +995,13 @@ document.addEventListener('DOMContentLoaded', () => {
         svg.append('defs').append('marker')
             .attr('id', 'arrow')
             .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 22) // shift arrowhead to edge of circle
+            .attr('refX', 8) // perfectly aligns arrowhead tip to the path's calculated endpoint
             .attr('refY', 0)
-            .attr('markerWidth', 6)
-            .attr('markerHeight', 6)
+            .attr('markerWidth', 5)
+            .attr('markerHeight', 5)
             .attr('orient', 'auto')
             .append('path')
-            .attr('fill', '#606bd2') // primary color
+            .attr('fill', '#8b5cf6') // brighter purple to match background contrast
             .attr('d', 'M0,-5L10,0L0,5');
 
         // Main group with zoom
@@ -955,8 +1027,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .data(links)
             .join('path')
             .attr('fill', 'none')
-            .attr('stroke', '#606bd2') // premium glowing primary color
-            .attr('stroke-opacity', 0.4)
+            .attr('stroke', '#8b5cf6') // brighter glowing primary color for dark backgrounds
+            .attr('stroke-opacity', 0.6) // Much more visible default
             .attr('stroke-width', d => Math.max(1.5, d.weight * 2.5))
             .attr('marker-end', 'url(#arrow)');
 
@@ -1008,7 +1080,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Calculate Degree Centrality (Connection Count) for Dynamic Sizing
         nodes.forEach(n => {
-            n.connectionCount = links.filter(l => l.source === n.id || l.target === n.id).length;
+            // D3 mutates link.source into an object reference instantly, so check .id if it exists
+            n.connectionCount = links.filter(l => (l.source.id || l.source) === n.id || (l.target.id || l.target) === n.id).length;
             n.radius = Math.min(35, 16 + (n.connectionCount * 3));
         });
 
@@ -1158,17 +1231,28 @@ document.addEventListener('DOMContentLoaded', () => {
         // The simulation tick loop handles physics updates
         simulation.on('tick', () => {
             link.attr('d', d => {
+                // Calculate distance between center points
                 const dx = d.target.x - d.source.x;
                 const dy = d.target.y - d.source.y;
-                const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; // Controls curve arc
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist === 0) return '';
 
-                // Calculate correct endpoint to not draw inside the target circle radius
+                // Very subtle arc instead of "noodles" (higher multiplier = flatter line)
+                const dr = dist * 4;
+
+                // Calculate exact border of the target circle to stop the line + arrowhead cleanly
                 const targetRadius = d.target.radius || 16;
-                const ratio = (targetRadius + 6) / Math.sqrt(dx * dx + dy * dy); // +6 for arrowhead padding
+                const ratio = (targetRadius + 2) / dist; // exact padding so arrowhead touches border
+
                 const targetX = d.target.x - (dx * ratio);
                 const targetY = d.target.y - (dy * ratio);
 
-                return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
+                const sourceRadius = d.source.radius || 16;
+                const sourceRatio = (sourceRadius) / dist;
+                const sourceX = d.source.x + (dx * sourceRatio);
+                const sourceY = d.source.y + (dy * sourceRatio);
+
+                return `M${sourceX},${sourceY}A${dr},${dr} 0 0,1 ${targetX},${targetY}`;
             });
 
             linkLabels

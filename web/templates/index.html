@@ -260,18 +260,7 @@
             </nav>
         </div>
         <div class="flex items-center gap-4">
-            <div
-                class="hidden lg:flex items-center px-3 py-1.5 border border-white/10 rounded-full bg-black/20 text-xs text-gray-300 gap-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                System Operational
-            </div>
-
-
-
-            <div
-                class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs ring-2 ring-white/10 shadow-lg cursor-pointer">
-                U
-            </div>
+            <!-- Removed System Operational and User Avatar for cleaner single-user local UX -->
         </div>
     </header>
 
@@ -378,9 +367,14 @@
                             </button>
                             <select id="llm-provider"
                                 class="bg-transparent border border-white/10 hover:border-white/20 text-xs rounded-lg px-2 py-1 text-slate-400 focus:outline-none focus:border-primary cursor-pointer shadow-sm mx-2">
-                                <option value="gemini" class="bg-surface-dark text-slate-200" selected>Google Gemini Pro
+                                <option value="gemini" class="bg-surface-dark text-slate-200" selected>Google Gemini 2.5
+                                    Flash
                                 </option>
-                                <option value="openai" class="bg-surface-dark text-slate-200">OpenAI GPT-4o</option>
+                                <option value="gpt-5.2" class="bg-surface-dark text-slate-200">OpenAI GPT-5.2</option>
+                                <option value="gpt-5.1" class="bg-surface-dark text-slate-200">OpenAI GPT-5.1</option>
+                                <option value="o3" class="bg-surface-dark text-slate-200">OpenAI o3</option>
+                                <option value="gpt-5-mini" class="bg-surface-dark text-slate-200">OpenAI GPT-5 Mini
+                                </option>
                             </select>
                         </div>
                         <button id="send-btn"
@@ -433,6 +427,17 @@
                             class="kb-tier-pill px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
                             data-tier="Conversational">Conv.</button>
                     </div>
+
+                    <!-- Sort Dropdown -->
+                    <div class="ml-4 mr-2 hidden md:block">
+                        <select id="kb-sort-select" onchange="window.setKbSort(this.value)"
+                            class="bg-background-dark text-[11px] text-slate-300 border border-border-dark rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-primary/50 focus:border-primary transition-colors appearance-none">
+                            <option value="tier" class="bg-surface-dark text-slate-200">Sort: Tier</option>
+                            <option value="chronological" class="bg-surface-dark text-slate-200">Sort: Time</option>
+                            <option value="activation" class="bg-surface-dark text-slate-200">Sort: Rank</option>
+                        </select>
+                    </div>
+
                     <!-- View Toggle -->
                     <div
                         class="flex h-9 items-center justify-center rounded-lg bg-background-dark border border-border-dark p-1 ml-auto">
@@ -619,6 +624,83 @@
                 <button id="confirm-new-work-btn"
                     class="px-4 py-2 text-sm bg-primary hover:bg-primary-hover text-white rounded-lg shadow-glow transition-all">Open
                     Workspace</button>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Knowledge Base Fact Modal -->
+    <div id="edit-kb-modal"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+        style="display: none; opacity: 0;">
+        <div class="bg-surface-dark border border-border-dark rounded-xl w-full max-w-lg shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200"
+            id="edit-kb-modal-content">
+            <div
+                class="p-5 border-b border-border-dark flex justify-between items-center bg-surface-dark/80 backdrop-blur-md">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-primary text-xl">edit_document</span>
+                    <h3 class="text-white font-semibold flex items-center gap-2">Edit Fact<span id="edit-kb-id"
+                            class="text-xs text-slate-500 font-mono bg-background-dark px-2 py-0.5 rounded border border-border-dark hidden"></span>
+                    </h3>
+                </div>
+                <button onclick="closeEditKbModal()"
+                    class="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Memory
+                        Content</label>
+                    <textarea id="edit-kb-content" rows="4"
+                        class="w-full bg-background-dark border border-border-dark rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wide">Memory
+                        Tier</label>
+                    <select id="edit-kb-tier"
+                        class="w-full bg-background-dark border border-border-dark rounded-lg p-3 text-sm text-slate-200 focus:outline-none focus:border-primary transition-all appearance-none cursor-pointer">
+                        <option value="Conversational">Conversational</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Project">Project</option>
+                        <option value="Research">Research</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-4 border-t border-border-dark bg-background-dark flex justify-end gap-3">
+                <button onclick="closeEditKbModal()"
+                    class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-surface-lighter rounded-lg transition-colors border border-transparent">Cancel</button>
+                <button id="save-kb-edit-btn"
+                    class="px-5 py-2 text-sm font-medium text-white bg-primary hover:bg-accent rounded-lg transition-colors shadow-lg shadow-primary/20 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">save</span>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Fact Confirmation Modal -->
+    <div id="delete-kb-modal"
+        class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+        style="display: none; opacity: 0;">
+        <div class="bg-surface-dark border border-red-500/20 rounded-xl w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 transition-transform duration-200"
+            id="delete-kb-modal-content">
+            <div class="p-6 text-center">
+                <div
+                    class="w-12 h-12 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                    <span class="material-symbols-outlined text-2xl">warning</span>
+                </div>
+                <h3 class="text-lg font-semibold text-white mb-2">Delete Memory?</h3>
+                <p class="text-sm text-slate-400 mb-6">This fact will be permanently erased from Nexus's knowledge
+                    graph. This action cannot be undone.</p>
+
+                <!-- Hidden input to store fact ID temporarily -->
+                <input type="hidden" id="delete-kb-id" value="">
+
+                <div class="flex gap-3 w-full">
+                    <button onclick="closeDeleteKbModal()"
+                        class="flex-1 py-2 text-sm font-medium text-slate-300 bg-surface-lighter hover:bg-slate-700 rounded-lg transition-colors border border-border-dark">Cancel</button>
+                    <button id="confirm-kb-delete-btn"
+                        class="flex-1 py-2 text-sm font-medium text-white bg-red-500/80 hover:bg-red-500 rounded-lg transition-colors shadow-lg shadow-red-500/20">Delete</button>
+                </div>
             </div>
         </div>
     </div>

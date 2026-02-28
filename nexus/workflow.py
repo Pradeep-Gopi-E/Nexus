@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from nexus.memory import MemoryStore
 from nexus.knowledge import KnowledgeBase
-from nexus.tools import python_repl_tool, get_search_tool
+from nexus.tools import python_repl_tool, get_search_tool, extract_images_from_pdf
 
 # Load all environment variables from .env file immediately
 load_dotenv()
@@ -38,8 +38,8 @@ class NexusWorkflow:
         self.memory = memory
         self.knowledge = knowledge
         
-        # Initialize our Tool Belt (Python AST Sandbox & Live Web Search)
-        self.tools = [python_repl_tool, get_search_tool(max_results=3)]
+        # Initialize our Tool Belt (Python AST Sandbox & Live Web Search & Image Extraction)
+        self.tools = [python_repl_tool, get_search_tool(max_results=3), extract_images_from_pdf]
         self.graph = self._build_graph()
 
     def _get_llm(self, provider: str, bind_tools: bool = True):
@@ -51,7 +51,16 @@ class NexusWorkflow:
         else:
             from langchain_openai import ChatOpenAI
             # Requires OPENAI_API_KEY in environment
-            llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+            model_name = provider.lower()
+            if model_name == "openai" or model_name not in ["gpt-5.2", "gpt-5.1", "o3", "gpt-5-mini", "o4-mini", "gpt-4o"]:
+                model_name = "gpt-5.2"  # Default to 5.2 if generic "openai" or unknown
+            
+            # o1, o3, etc., may not support temperature parameter in the same way, but Langchain 
+            # usually handles the mapping gracefully. We'll set temperature where safe.
+            if model_name.startswith("o"):
+                llm = ChatOpenAI(model=model_name)
+            else:
+                llm = ChatOpenAI(model=model_name, temperature=0.2)
             
         if bind_tools:
             return llm.bind_tools(self.tools)
@@ -87,7 +96,9 @@ class NexusWorkflow:
         
         system_prompt = (
             "You are Nexus, a highly intelligent multimodal research assistant.\n"
-            "You can analyze images natively (if attached to the user message), run Python scripts safely to analyze DataFrames, and Search the live web for facts.\n"
+            "You can execute Python scripts, Search the live web, and extract images directly from uploaded PDFs on-demand.\n"
+            "CRITICAL: If the user explicitly asks to SEE, EXPLAIN, OR DESCRIBE an image, diagram, or chart from a PDF, you MUST use the `extract_images_from_pdf` tool. "
+            f"Pass their active project_id ('{state['project_id']}'), the filename (found in context), and the requested page number.\n\n"
             f"**Vector Document Context:**\n{context_str}\n\n"
             f"**Global Memory Facts (Core Memories):**\n{facts_str}"
         )
@@ -271,6 +282,8 @@ For each new fact you extract, evaluate if it:
 3. "SYNTHESIZES" multiple existing nodes.
 4. Or if it is a completely disjoint "Genesis" fact with no edges.
 
+CRITICAL RULE FOR EDGES: You must NEVER invent or hallucinate a UUID! If you create an edge, the source_node_id and target_node_id MUST exactly match an ID from the "Existing Graph Context" below OR the temporary "new_" IDs you create in this turn's "facts" array. Any edge with a hallucinated UUID will corrupt the system.
+
 Existing Graph Context:
 {existing_context if existing_context else "No existing nodes in the graph."}
 
@@ -295,28 +308,32 @@ CRITICAL: For each new fact, determine its "source" logically:
         
         # Format the question with images if present
         if images and len(images) > 0:
-            msg_content = [{"type": "text", "text": f"Document Context:\n{context_str}\n\nUser Question:\n{question}\n\nAssistant Answer:\n{answer}"}]
+            msg_content = [{"type": "text", "text": f"SYSTEM INSTRUCTIONS:\n{system_prompt}\n\n================\nDocument Context:\n{context_str}\n\nUser Question:\n{question}\n\nAssistant Answer:\n{answer}"}]
             for img in images:
                 if not img.startswith("data:image"):
                     img = f"data:image/jpeg;base64,{img}"
                 msg_content.append({"type": "image_url", "image_url": {"url": img}})
             human_msg = HumanMessage(content=msg_content)
         else:
-            human_msg = HumanMessage(content=f"Document Context:\n{context_str}\n\nUser: {question}\nAssistant: {answer}")
+            human_msg = HumanMessage(content=f"SYSTEM INSTRUCTIONS:\n{system_prompt}\n\n================\nDocument Context:\n{context_str}\n\nUser Question:\n{question}\n\nAssistant Answer:\n{answer}")
             
-        messages = [
-            SystemMessage(content=system_prompt),
-            human_msg
-        ]
+        messages = [human_msg]
         
-        llm = self._get_llm(llm_provider, bind_tools=False)
+        llm = self._get_llm("o4-mini", bind_tools=False)
         try:
+            import re
             response = llm.invoke(messages)
             content = response.content.strip()
-            if content.startswith("```json"):
-                content = content[7:-3]
-            elif content.startswith("```"):
-                content = content[3:-3]
+            
+            # Smart JSON extraction for chatty reasoning models
+            json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+            if json_match:
+                content = json_match.group(1).strip()
+            else:
+                start_idx = content.find('{')
+                end_idx = content.rfind('}')
+                if start_idx != -1 and end_idx != -1:
+                    content = content[start_idx:end_idx+1]
             
             try:
                 data = json.loads(content)
@@ -365,6 +382,11 @@ CRITICAL: For each new fact, determine its "source" logically:
                         # Fallback for old agent format
                         self.memory.save_fact(project_id, fact_obj, source="auto_extract")
                 
+                # Build a set of all valid UUIDs to filter out LLM hallucinations
+                valid_ids_set = {n.id for n in existing_nodes}
+                for real_id in id_mapping.values():
+                    valid_ids_set.add(real_id)
+
                 # Write newly discovered Edges
                 for edge_obj in edges:
                     if isinstance(edge_obj, dict):
@@ -377,14 +399,19 @@ CRITICAL: For each new fact, determine its "source" logically:
                         real_src = id_mapping.get(src_id, src_id)
                         real_tgt = id_mapping.get(tgt_id, tgt_id)
 
-                        if real_src and real_tgt:
+                        # Prevent database corruption by silently dropping hallucinated edge IDs
+                        if real_src and real_tgt and (real_src in valid_ids_set) and (real_tgt in valid_ids_set):
                             print(f"DEBUG Connecting Edge: {real_src} -> {real_tgt} ({rel_type})")
                             self.memory.add_edge(project_id, real_src, real_tgt, rel_type, weight)
                         else:
-                            print(f"DEBUG Failed to resolve Edge src: {src_id} or tgt: {tgt_id}")
+                            print(f"DEBUG Rejected Hallucinated Edge src: {src_id} or tgt: {tgt_id}")
             else:
                 print(f"DEBUG bg facts was not an array/dict: {facts}")
                         
         except Exception as e:
             print(f"Background memory extraction failed: {e}")
+            import traceback, os
+            with open(os.path.join(os.path.dirname(__file__), "..", "bg_error.txt"), "w") as f:
+                f.write(f"Error: {str(e)}\n\n")
+                f.write(traceback.format_exc())
             traceback.print_exc()
