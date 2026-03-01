@@ -27,20 +27,47 @@ mcp = FastMCP("Nexus")
 def _get_active_project(provided_id: str = None) -> str:
     return provided_id or memory.get_preference("mcp_active_project", "mcp_global")
 
+import time
+import random
+import string
+
 @mcp.tool()
-def set_active_project(project_id: str, name: str) -> str:
+def set_active_project(project_id: str, name: str = None) -> str:
     """
     Creates or sets the current active workspace/project that subsequent tool calls will default to.
+    
+    CRITICAL BEHAVIOR: 
+    When you first start a new chat with the user, DO NOT instantly generate a new project. 
+    You MUST first ask the user: "Do you have an existing Nexus Project ID you want to connect, or should I create a new one?"
+    If they provide a `project_id`, you MUST pass that exact string to this tool.
+    Only if they say "create a new one" should you generate a random string `proj_...` and pass it here.
     """
-    memory.ensure_project(project_id, name)
+    if not project_id:
+        timestamp = int(time.time() * 1000)
+        random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=9))
+        project_id = f"proj_{timestamp}_{random_suffix}"
+
+    # Look up the actual existing name to prevent the AI from echoing a generic fallback
+    cursor = memory.conn.execute("SELECT name FROM projects WHERE id = ?", (project_id,))
+    row = cursor.fetchone()
+    
+    if row:
+        final_name = row['name']
+    else:
+        final_name = name if name else "Project Workspace"
+
+    memory.ensure_project(project_id, final_name)
     memory.save_preference("mcp_active_project", project_id)
-    return f"Active project set to '{name}' [ID: {project_id}]"
+    return f"Active project set to '{final_name}' [ID: {project_id}]. Please note this ID for future calls."
 
 @mcp.tool()
 def ask_nexus(question: str, provider: str = "gemini", project_id: str = None) -> str:
     """
     Query Nexus on a research topic. This triggers a multi-step workflow.
     Valid providers: 'gemini', 'gpt-5.2', 'gpt-5.1', 'o3', 'gpt-5-mini'
+    
+    CRITICAL: If you do not yet know the user's active Project ID (because they haven't set one in this chat), 
+    you MUST ask them for their Project ID BEFORE running this tool. Do not guess or generate one silently.
     """
     pid = _get_active_project(project_id)
     res = workflow.execute(pid, question, llm_provider=provider)

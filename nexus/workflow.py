@@ -94,8 +94,11 @@ class NexusWorkflow:
         context_str = "\n".join(state.get("context", []))
         facts_str = "\n".join(state.get("facts", []))
         
+        from datetime import datetime
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
         system_prompt = (
-            "You are Nexus, a highly intelligent multimodal research assistant.\n"
+            f"You are Nexus, a highly intelligent multimodal research assistant. The current date is {current_date}.\n"
             "You can execute Python scripts, Search the live web, and extract images directly from uploaded PDFs on-demand.\n"
             "CRITICAL: If the user explicitly asks to SEE, EXPLAIN, OR DESCRIBE an image, diagram, or chart from a PDF, you MUST use the `extract_images_from_pdf` tool. "
             f"Pass their active project_id ('{state['project_id']}'), the filename (found in context), and the requested page number.\n\n"

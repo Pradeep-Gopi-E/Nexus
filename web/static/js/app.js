@@ -34,6 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const messagesContainer = document.getElementById('messages-container');
     const providerSelect = document.getElementById('llm-provider');
 
+    // Load last used provider
+    const savedProvider = localStorage.getItem('nexus_last_provider');
+    if (savedProvider) {
+        providerSelect.value = savedProvider;
+    }
+
+    // Save provider on change
+    providerSelect.addEventListener('change', (e) => {
+        localStorage.setItem('nexus_last_provider', e.target.value);
+    });
+
     const projectList = document.getElementById('project-list');
     const newProjectBtn = document.getElementById('new-project-btn');
     const togglePastWorkBtn = document.getElementById('toggle-past-work-btn');
@@ -63,13 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmNewWorkBtn = document.getElementById('confirm-new-work-btn');
     const cancelNewWorkBtn = document.getElementById('cancel-new-work-btn');
 
-    // Attach custom name to UI immediately
+    // Attach custom name and ID to UI immediately
     if (currentProjectName) {
         currentProjectName.textContent = currentProjectCustomName;
     }
     const kbProjectLabel = document.getElementById('kb-project-label');
     if (kbProjectLabel) {
         kbProjectLabel.textContent = currentProjectCustomName;
+    }
+    const displayProjectId = document.getElementById('display-project-id');
+    if (displayProjectId) {
+        // Display the clean human-readable name, but the button will still copy the full raw ID
+        displayProjectId.textContent = currentProjectCustomName;
     }
 
     // --- Autoresize Textarea ---
@@ -80,17 +96,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Chat Logic ---
-    function appendMessage(content, isUser = false, isHtml = false) {
+    function appendMessage(content, isUser = false, isHtml = false, animate = false) {
         const msgDiv = document.createElement('div');
         msgDiv.className = `flex gap-4 mb-8 group animate-fade-in-up ${isUser ? 'flex-row-reverse' : ''}`;
 
         const avatar = document.createElement('div');
         if (isUser) {
-            avatar.className = 'size-8 rounded-full bg-gradient-to-br from-primary to-purple-600 p-[1px] flex items-center justify-center shrink-0 mt-1 overflow-hidden';
-            avatar.innerHTML = `<span class="rounded-full h-full w-full border-2 border-surface-dark bg-background-dark flex items-center justify-center text-xs font-bold text-white">U</span>`;
+            // No avatar for the user
+            avatar.className = 'size-8 shrink-0'; // Keep space for alignment
         } else {
-            avatar.className = 'size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1';
-            avatar.innerHTML = `<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>`;
+            avatar.className = 'relative size-8 rounded-[0.4rem] bg-[#0B0C15] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.4)] border border-purple-500/30 overflow-hidden mt-1 transition-shadow duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]';
+            avatar.innerHTML = `<img src="/static/logo.svg" alt="Nexus Logo" class="w-[85%] h-[85%] object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mix-blend-screen" style="filter: invert(40%) sepia(100%) saturate(6000%) hue-rotate(250deg) brightness(150%) contrast(150%);" />`;
         }
 
         const contentWrapper = document.createElement('div');
@@ -98,17 +114,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const headerNode = document.createElement('div');
         headerNode.className = `flex items-baseline gap-2 mb-1 ${isUser ? 'flex-row-reverse' : ''}`;
-        headerNode.innerHTML = `<span class="text-sm font-semibold text-white">${isUser ? 'You' : 'Nexus AI'}</span>
-                                <span class="text-xs text-slate-500">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`;
+
+        if (!isUser) {
+            const name = document.createElement('div');
+            name.className = 'text-sm font-semibold text-white';
+            name.textContent = 'Nexus AI';
+            headerNode.appendChild(name);
+        }
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'text-xs text-slate-500';
+        timeSpan.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        headerNode.appendChild(timeSpan);
 
         const bubble = document.createElement('div');
         if (isUser) {
-            bubble.className = 'px-5 py-3 rounded-2xl rounded-tr-sm bg-surface-lighter border border-border-dark text-slate-200 text-sm leading-relaxed shadow-sm bubble';
+            bubble.className = 'bg-surface p-4 rounded-2xl rounded-tr-sm text-sm whitespace-pre-wrap leading-relaxed border border-white/5 relative group ml-auto max-w-[85%] w-fit';
         } else {
             bubble.className = 'prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed bubble markdown-body';
         }
 
-        if (isHtml) {
+        if (isHtml && !isUser && animate) {
+            bubble.innerHTML = '';
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+
+            let charCount = 0;
+
+            async function typeNode(node, parent) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    let currentText = '';
+                    const textNode = document.createTextNode('');
+                    parent.appendChild(textNode);
+
+                    for (let i = 0; i < text.length; i++) {
+                        currentText += text.charAt(i);
+                        textNode.textContent = currentText;
+                        charCount++;
+
+                        // Only force scroll update occasionally or if user is near bottom, prevents scroll locking
+                        if (charCount % 5 === 0) {
+                            const isNearBottom = messagesContainer.scrollHeight - messagesContainer.scrollTop - messagesContainer.clientHeight < 150;
+                            if (isNearBottom) {
+                                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            }
+                        }
+
+                        await new Promise(r => setTimeout(r, 6)); // Real typewriter effect delay
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    const newEl = document.createElement(node.tagName);
+                    for (let attr of node.attributes) {
+                        newEl.setAttribute(attr.name, attr.value);
+                    }
+                    parent.appendChild(newEl);
+                    for (let child of Array.from(node.childNodes)) {
+                        await typeNode(child, newEl);
+                    }
+                }
+            }
+
+            // Fire and forget so we don't hold the stack
+            (async () => {
+                for (let child of Array.from(tempDiv.childNodes)) {
+                    await typeNode(child, bubble);
+                }
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            })();
+
+        } else if (isHtml) {
             bubble.innerHTML = content;
         } else {
             bubble.innerHTML = content.replace(/\\n/g, '<br>');
@@ -130,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
         msgDiv.id = 'typing-indicator';
 
         const avatar = document.createElement('div');
-        avatar.className = 'size-8 rounded-lg bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20 mt-1';
-        avatar.innerHTML = `<span class="material-symbols-outlined text-white text-[16px]">smart_toy</span>`;
+        avatar.className = 'relative size-8 rounded-[0.4rem] bg-[#0B0C15] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.4)] border border-purple-500/30 overflow-hidden mt-1 transition-shadow duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]';
+        avatar.innerHTML = `<img src="/static/logo.svg" alt="Nexus Logo" class="w-[85%] h-[85%] object-contain drop-shadow-[0_0_8px_rgba(168,85,247,0.8)] mix-blend-screen animate-pulse" style="filter: invert(40%) sepia(100%) saturate(6000%) hue-rotate(250deg) brightness(150%) contrast(150%);" />`;
 
         const contentWrapper = document.createElement('div');
         contentWrapper.className = 'flex-1 max-w-3xl';
@@ -222,8 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     finalHtml += '</div>';
                 }
 
-                appendMessage(finalHtml, false, true);
-                loadHistory();
+                appendMessage(finalHtml, false, true, true); // <--- Pass true to trigger animation on new response
                 loadMemory();
 
                 // Poll for background memory extraction updates
@@ -412,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Quick hack attached to window since dynamically setting onclick in HTML snippet 
     window.deleteMem = async function (id) {
-        await fetch(`/api/memory/${currentProjectId}/${id}`, { method: 'DELETE' });
+        await fetch(`/api/memory/${id}`, { method: 'DELETE' });
         loadMemory();
     };
 
@@ -438,10 +512,111 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    addFactBtn.addEventListener('click', addMemory);
-    newFactInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addMemory();
-    });
+    // --- Toast Notification System ---
+    function showToast(message, type = "success") {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className = `glass-panel px-4 py-2 rounded-lg shadow-lg border text-sm font-medium flex items-center gap-2 transform transition-all duration-300 translate-x-full opacity-0 ${type === 'success' ? 'border-primary/50 text-primary' : 'border-red-500/50 text-red-400'}`;
+        toast.innerHTML = `<span class="material-symbols-outlined text-[18px]">${type === 'success' ? 'check_circle' : 'error'}</span> ${message}`;
+
+        toastContainer.appendChild(toast);
+
+        // Triggers fade in and slide
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-x-full', 'opacity-0');
+        });
+
+        setTimeout(() => {
+            toast.classList.add('translate-x-2', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // --- Project ID & Context Management Logic ---
+    const copyProjectIdBtn = document.getElementById('copy-project-id-btn');
+    if (copyProjectIdBtn) {
+        copyProjectIdBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(currentProjectId);
+                showToast('Copied project ID to clipboard');
+                const icon = copyProjectIdBtn.querySelector('span.material-symbols-outlined');
+                const originalText = icon.textContent;
+                icon.textContent = 'check';
+                icon.classList.add('text-emerald-500');
+                setTimeout(() => {
+                    icon.textContent = originalText;
+                    icon.classList.remove('text-emerald-500');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy project ID', err);
+                showToast('Failed to copy ID', 'error');
+            }
+        });
+    }
+
+    const deleteContextBtn = document.getElementById('delete-context-btn');
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+    const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+    const deleteModalProjectName = document.getElementById('delete-modal-project-name');
+
+    if (deleteContextBtn && deleteModal) {
+        deleteContextBtn.addEventListener('click', () => {
+            deleteModalProjectName.textContent = currentProjectCustomName || currentProjectId;
+            deleteModal.classList.remove('opacity-0', 'pointer-events-none');
+            deleteModal.lastElementChild.classList.remove('scale-95');
+        });
+
+        const closeModal = () => {
+            deleteModal.classList.add('opacity-0', 'pointer-events-none');
+            deleteModal.lastElementChild.classList.add('scale-95');
+        };
+
+        cancelDeleteBtn.addEventListener('click', closeModal);
+        deleteModal.addEventListener('click', (e) => {
+            if (e.target === deleteModal) closeModal();
+        });
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            closeModal();
+            try {
+                const res = await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: currentProjectId })
+                });
+                if (res.ok) {
+                    showToast('Project deleted successfully.');
+                    sessionStorage.removeItem('nexus_current_project_id');
+                    sessionStorage.removeItem('nexus_current_project_name');
+
+                    try {
+                        const projRes = await fetch('/api/projects');
+                        const projData = await projRes.json();
+                        if (projData.projects && projData.projects.length > 0) {
+                            const nextProj = projData.projects.find(p => p.id !== currentProjectId);
+                            if (nextProj) {
+                                window.location.href = `/?project_id=${encodeURIComponent(nextProj.id)}&project_name=${encodeURIComponent(nextProj.name || 'Project')}`;
+                                return;
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to grab next project', err);
+                    }
+
+                    // Fallback to fresh session if no other projects exist
+                    window.location.href = '/';
+                } else {
+                    showToast('Failed to delete context.', 'error');
+                }
+            } catch (e) {
+                console.error('Error deleting context', e);
+                showToast('Server error.', 'error');
+            }
+        });
+    }
 
     // --- Upload Logic for Documents ---
     uploadZone.addEventListener('click', () => fileInput.click());
@@ -814,7 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
         closeDeleteKbModal();
 
         // 1. Optimistic UI: Instantly remove from local memory
-        globalKnowledgeData = globalKnowledgeData.filter(f => f.id !== id);
+        kbFactsData = kbFactsData.filter(f => f.id !== id);
         renderKnowledgeBase();
         if (currentKbViewMode === 'map') renderMindMap();
 
@@ -857,10 +1032,10 @@ document.addEventListener('DOMContentLoaded', () => {
         closeEditKbModal();
 
         // 1. Optimistic UI: Instantly update local memory
-        const factIndex = globalKnowledgeData.findIndex(f => f.id === id);
+        const factIndex = kbFactsData.findIndex(f => f.id === id);
         if (factIndex > -1) {
-            globalKnowledgeData[factIndex].content = newContent;
-            globalKnowledgeData[factIndex].tier = newTier;
+            kbFactsData[factIndex].content = newContent;
+            kbFactsData[factIndex].tier = newTier;
             renderKnowledgeBase();
             if (currentKbViewMode === 'map') renderMindMap();
         }
@@ -991,34 +1166,65 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr('height', '100%')
             .attr('viewBox', [0, 0, width, height]);
 
-        // Add defs for arrowheads
-        svg.append('defs').append('marker')
-            .attr('id', 'arrow')
-            .attr('viewBox', '0 -5 10 10')
-            .attr('refX', 8) // perfectly aligns arrowhead tip to the path's calculated endpoint
-            .attr('refY', 0)
-            .attr('markerWidth', 5)
-            .attr('markerHeight', 5)
-            .attr('orient', 'auto')
-            .append('path')
-            .attr('fill', '#8b5cf6') // brighter purple to match background contrast
-            .attr('d', 'M0,-5L10,0L0,5');
+        // Map semantic edge types to specific Tailwind-aligned hex colors
+        const edgeColors = {
+            'CONTRADICTS': '#ef4444', // red-500
+            'SUPPORTS': '#10b981',    // emerald-500
+            'ELABORATES_ON': '#3b82f6', // blue-500
+            'RELATES_TO': '#8b5cf6',   // violet-500
+            'default': '#64748b'       // slate-500
+        };
+
+        // Add defs for distinct, color-coded arrowheads
+        const defs = svg.append('defs');
+        Object.entries(edgeColors).forEach(([type, color]) => {
+            defs.append('marker')
+                .attr('id', `arrow-${type}`)
+                .attr('viewBox', '0 -5 10 10')
+                .attr('refX', 8) // perfectly aligns arrowhead tip to the path's calculated endpoint
+                .attr('refY', 0)
+                .attr('markerWidth', 5)
+                .attr('markerHeight', 5)
+                .attr('orient', 'auto')
+                .append('path')
+                .attr('fill', color)
+                .attr('d', 'M0,-5L10,0L0,5');
+        });
 
         // Main group with zoom
         const g = svg.append('g');
 
-        svg.call(d3.zoom()
+        const zoomBehavior = d3.zoom()
             .extent([[0, 0], [width, height]])
             .scaleExtent([0.1, 4])
+            .wheelDelta((event) => {
+                // Drastically slow down the default D3 wheel multiplier for a buttery-smooth scrolling experience 
+                return -event.deltaY * (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002) * 0.3;
+            })
             .on('zoom', (event) => {
                 g.attr('transform', event.transform);
-            }));
+            });
+
+        svg.call(zoomBehavior);
+
+        // Zoom UI Controls
+        d3.select('#kb-zoom-in-btn').on('click', () => {
+            svg.transition().duration(750).call(zoomBehavior.scaleBy, 1.5);
+        });
+        d3.select('#kb-zoom-out-btn').on('click', () => {
+            svg.transition().duration(750).call(zoomBehavior.scaleBy, 0.75);
+        });
+        d3.select('#kb-zoom-reset-btn').on('click', () => {
+            svg.transition().duration(750).call(zoomBehavior.transform, d3.zoomIdentity);
+        });
 
         // Force Simulation Physics
         const simulation = d3.forceSimulation(nodes)
             .force('link', d3.forceLink(links).id(d => d.id).distance(200)) // increase edge length
             .force('charge', d3.forceManyBody().strength(-600)) // stronger repulsion
             .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('x', d3.forceX(width / 2).strength(0.08)) // gentle gravity towards center X to pull disconnected clusters together
+            .force('y', d3.forceY(height / 2).strength(0.08)) // gentle gravity towards center Y
             .force('collide', d3.forceCollide().radius(80)); // aggressively prevent overlaps for wide HTML labels
 
         // Draw Links as fluid, glowing Bezier curves (path instead of line)
@@ -1027,10 +1233,13 @@ document.addEventListener('DOMContentLoaded', () => {
             .data(links)
             .join('path')
             .attr('fill', 'none')
-            .attr('stroke', '#8b5cf6') // brighter glowing primary color for dark backgrounds
+            .attr('stroke', d => edgeColors[d.type] || edgeColors['default'])
             .attr('stroke-opacity', 0.6) // Much more visible default
             .attr('stroke-width', d => Math.max(1.5, d.weight * 2.5))
-            .attr('marker-end', 'url(#arrow)');
+            .attr('marker-end', d => {
+                const markerType = edgeColors[d.type] ? d.type : 'default';
+                return `url(#arrow-${markerType})`;
+            });
 
         // Draw Link Labels (relationship_type) - Hidden by default to reduce clutter
         const linkLabels = g.append('g')
@@ -1129,7 +1338,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .style("font-size", "12px");
 
         node.on("mouseover", (event, d) => {
-            tooltip.transition().duration(200).style("opacity", 1);
+            // .interrupt() cancels any active D3 transition animations to prevent tooltips from getting "stuck"
+            tooltip.interrupt().transition().duration(200).style("opacity", 1);
             tooltip.html(`
                 <div class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color: ${tierColors[d.tier] || tierColors['Conversational']}">${d.tier}</div>
                 <div class="mb-2 leading-tight">${escapeHtml(d.content)}</div>
@@ -1139,14 +1349,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `)
                 .style("left", (event.pageX + 15) + "px")
-                .style("top", (event.pageY + 15) + "px");
+                .style("top", (event.pageY + 15) + "px")
+                .style("pointer-events", "none");
 
             // Highlight connected edges and show labels
             link.attr('stroke-opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1.0 : 0.1);
             linkLabels.attr('opacity', l => (l.source.id === d.id || l.target.id === d.id) ? 1.0 : 0.0);
         })
             .on("mouseout", () => {
-                tooltip.transition().duration(500).style("opacity", 0);
+                tooltip.interrupt().style("opacity", 0);
                 link.attr('stroke-opacity', 0.6);
                 linkLabels.attr('opacity', 0);
             })
@@ -1212,6 +1423,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Slide panel in
                 panel.classList.remove('right-[-400px]');
                 panel.classList.add('right-6');
+
+                // Smoothly zoom in and center on the clicked node, offset slightly to account for the sliding info panel
+                svg.transition().duration(750).call(
+                    zoomBehavior.transform,
+                    d3.zoomIdentity.translate(width / 2 - 160, height / 2).scale(1.5).translate(-d.x, -d.y)
+                );
 
                 // Setup edit/delete buttons
                 document.getElementById('info-panel-edit-btn').onclick = () => window.editKbFact(d.id, d.content, d.tier);

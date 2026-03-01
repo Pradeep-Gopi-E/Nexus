@@ -205,6 +205,12 @@ class MemoryStore:
             cursor = self.conn.execute(query, tuple(params))
             return cursor.rowcount > 0
 
+    def delete_fact(self, fact_id: str):
+        """Deletes a fact and cascades deletion to any edges connected to it."""
+        with self.conn:
+            self.conn.execute("DELETE FROM edges WHERE source_node_id = ? OR target_node_id = ?", (fact_id, fact_id))
+            self.conn.execute("DELETE FROM facts WHERE id = ?", (fact_id,))
+
 
     def update_access(self, fact_ids: List[str]):
         """Increments the access count and updates the last_accessed timestamp for active memories."""
