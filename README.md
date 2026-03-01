@@ -3,7 +3,6 @@
   <h1>Nexus</h1>
   <p>Production-Ready Agentic Research Environment</p>
 
-  <img src="placeholder_image_web_ui.png" alt="Nexus Web UI" width="800"/>
 </div>
 
 Nexus is a context-aware AI research assistant with durable long-term memory and workspace isolation. It functions as both a Model Context Protocol (MCP) server and a standalone web application for complex reasoning workflows.
@@ -15,7 +14,7 @@ Nexus is a context-aware AI research assistant with durable long-term memory and
 - **Multi-Provider Support:** Seamlessly integrates with Google Gemini and OpenAI models.
 
 <div align="center">
-  <video src="node_demo.mp4" width="800" autoplay loop muted playsinline></video>
+  <img src="node_demo.gif" alt="Node Demo" width="800" />
 </div>
 
 ## 🛠️ Tech Stack
@@ -56,12 +55,12 @@ Launch the full UI with visual memory management:
 *Navigate to `http://localhost:8000`*
 
 ### MCP Server (Headless)
-Expose Nexus directly to IDEs like Cursor, VS Code, or Claude Desktop.
+Expose Nexus directly to IDEs like Cursor, VS Code, Antigravity or Claude Desktop.
 
 **Client Configuration:**
 - **Command:** `[Absolute Path]\nexus\Scripts\python.exe`
 - **Args:** `[Absolute Path]\nexus\server.py`
 
 <div align="center">
-  <video src="MCP_demo.mp4" width="800" autoplay loop muted playsinline></video>
+  <img src="MCP_demo.gif" alt="MCP Demo" width="800" />
 </div>
